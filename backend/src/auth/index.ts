@@ -4,7 +4,8 @@ config();
 
 const authRouter = Router();
 authRouter.get("/auth/github", (_: Request, res: Response) => {
-  const redirectUrl = "http://localhost:3000/auth/github/callback";
+  const redirectUrl =
+    "https://recriminative-tattlingly-izola.ngrok-free.dev/auth/github/callback";
   const clientId = process.env.GITHUB_CLIENT;
   const url = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUrl}&scope=read:user,public_repo`;
   res.redirect(url);
@@ -12,7 +13,6 @@ authRouter.get("/auth/github", (_: Request, res: Response) => {
 
 authRouter.get("/auth/github/callback", async (req: Request, res: Response) => {
   const code = req.query.code as string;
-  console.log(code);
   if (!code) {
     res.status(400).json({ msg: "code needed" });
     return;
@@ -45,10 +45,7 @@ authRouter.get("/auth/github/callback", async (req: Request, res: Response) => {
 
     const data = await tokenResponse.text();
     const params = new URLSearchParams(data);
-    console.log(params, "Params");
     const access_token = params.get("access_token");
-    console.log(access_token, "Github token");
-
     if (!access_token) {
       return res
         .status(400)
@@ -61,7 +58,6 @@ authRouter.get("/auth/github/callback", async (req: Request, res: Response) => {
         Authorization: `Bearer ${access_token}`,
       },
     });
-    console.log(userProfileResponse);
     if (!userProfileResponse.ok) {
       res.status(500).json({ msg: "failed to get user acc" });
       return;
@@ -87,6 +83,11 @@ authRouter.get("/auth/github/callback", async (req: Request, res: Response) => {
     };
 
     req.session.access_token = access_token;
+    req.session.userName = userData.username;
+    req.session.save(() => {
+      console.log("Session saved", req.session);
+    });
+
     res.redirect(
       `http://localhost:5173/jobs?query=${JSON.stringify(userData)}`
     );

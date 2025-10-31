@@ -59,7 +59,10 @@ interface repoDetailsI {
 
 const analyzeGuestProfiles = async (req: Request, res: Response) => {
   try {
-    const username = (req.query.u as string) || "";
+    let username = (req.query.u as string) || "";
+    if (!username && req.session.userName) {
+      username = req.session.userName;
+    }
     if (
       !username.trim() ||
       username.trim().length > 30 ||
@@ -101,8 +104,12 @@ const analyzeGuestProfiles = async (req: Request, res: Response) => {
     console.log("REPS:", repos.length);
 
     const packages = await getPackages(req, repos);
+    const response = await callAi(
+      { ...moreInfo, ...personal_information },
+      packages
+    );
     res.json({
-      packages,
+      response,
     });
   } catch (e: any) {
     res.json({

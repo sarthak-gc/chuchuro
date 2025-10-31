@@ -1,4 +1,4 @@
-import express, { Request, Response } from "express";
+import express, { NextFunction, Request, Response } from "express";
 import session from "express-session";
 import authRouter from "./auth";
 import { dummyCompanyHR } from "./data/dummy.company";
@@ -17,13 +17,41 @@ app.use(
     secret: "keyboard cat",
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: true },
+    cookie: { secure: false },
   })
 );
 
 app.use(authRouter);
+
+const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  if (req.session.userName && req.session.access_token) {
+    next();
+    return;
+  }
+  res.json({
+    msg: "login to continue",
+  });
+  return;
+};
+
 app.use(router);
 
+app.get("/logout", (req: Request, res: Response) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ msg: "Failed to log out" });
+    }
+    res.clearCookie("connect.sid");
+    res.redirect("http://localhost:5173/sign-up/user");
+  });
+});
+
+app.get("/test", authMiddleware, (req: Request, res: Response) => {
+  res.json({
+    msg: req.session.access_token,
+    msg2: req.session.userName,
+  });
+});
 app.get("/company", (req: Request, res: Response) => {
   res.json({
     jobs: dummyCompanyHR,
