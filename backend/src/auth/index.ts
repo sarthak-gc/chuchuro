@@ -2,18 +2,17 @@ import { config } from "dotenv";
 import { Request, Response, Router } from "express";
 config();
 
-const router = Router();
-router.get("/auth/github", (_: Request, res: Response) => {
+const authRouter = Router();
+authRouter.get("/auth/github", (_: Request, res: Response) => {
   const redirectUrl = "http://localhost:3000/auth/github/callback";
   const clientId = process.env.GITHUB_CLIENT;
-  console.log(clientId, "Client id");
   const url = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUrl}&scope=read:user,public_repo`;
   res.redirect(url);
 });
 
-router.get("/auth/github/callback", async (req: Request, res: Response) => {
+authRouter.get("/auth/github/callback", async (req: Request, res: Response) => {
   const code = req.query.code as string;
-
+  console.log(code);
   if (!code) {
     res.status(400).json({ msg: "code needed" });
     return;
@@ -36,7 +35,6 @@ router.get("/auth/github/callback", async (req: Request, res: Response) => {
         },
       }
     );
-    console.log(tokenResponse, "TOKEN RESOPNSE");
 
     if (!tokenResponse.ok) {
       res
@@ -63,27 +61,40 @@ router.get("/auth/github/callback", async (req: Request, res: Response) => {
         Authorization: `Bearer ${access_token}`,
       },
     });
-
+    console.log(userProfileResponse);
     if (!userProfileResponse.ok) {
       res.status(500).json({ msg: "failed to get user acc" });
       return;
     }
 
     const userProfile = await userProfileResponse.json();
-    const githubId = userProfile.id.toString();
 
-    console.log(access_token);
-    req.session.access_token = access_token;
-    req.session.save();
-    res.json({
-      msg: "Authenticated",
+    const githubId = userProfile.id.toString();
+    const userData = {
+      id: userProfile.id,
+      username: userProfile.login,
+      name: userProfile.name,
+      avatar: userProfile.avatar_url,
+      bio: userProfile.bio,
+      githubUrl: userProfile.html_url,
+      company: userProfile.company,
+      location: userProfile.location,
+      followers: userProfile.followers,
+      following: userProfile.following,
+      public_repos: userProfile.public_repos,
       access_token,
       githubId,
-    });
+    };
+
+    req.session.access_token = access_token;
+    res.redirect(
+      `http://localhost:5173/jobs?query=${JSON.stringify(userData)}`
+    );
   } catch (err) {
     console.error("something went wrong", err);
     return res.status(500).json({ msg: "something went wrong" });
   }
 });
+authRouter.get("/auth/github/successurl", () => {});
 
-export default router;
+export default authRouter;
