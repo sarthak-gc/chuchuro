@@ -17,6 +17,9 @@
     "redis": "^5.9.0",
     "zod": "^4.1.12"
   },
+  "scripts": {
+    "dev": "nodemon --watch dist --exec node dist/index.js"
+  },
   "devDependencies": {
     "@types/dotenv": "^8.2.3",
     "@types/express": "^5.0.5",

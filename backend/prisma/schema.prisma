@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
@@ -9,35 +9,205 @@ datasource db {
 }
 
 model User {
-  id             String  @id @default(uuid())
-  githubId       String  @unique
-  githubUserName String  @unique
-  email          String? @unique
-  name           String?
-  imageUrl       String
-  bio            String?
-  location       String?
-  company        String?
-  blog           String?
-
-  publicRepos  Int
-  totalRepoCnt Int
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  repositories Repository[]
-
-  @@index([githubId])
+  id                   Int                 @id @default(autoincrement())
+  email                String              @unique
+  age                  Int?
+  location             String?
+  preferred_location   String?
+  preferred_job_type   String?
+  preferred_industries String[]
+  skills               String[]
+  experience           Experience[]
+  salary_expectations  SalaryExpectations?
+  job_preferences      JobPreferences?
+  Education            Education[]
+  Application          Application[]
 }
 
-model Repository {
-  id          String   @id @default(uuid())
-  name        String
-  description String?
-  url         String
-  ownerId     String
-  createdAt   DateTime @default(now())
+model Education {
+  id              Int    @id @default(autoincrement())
+  degree          String
+  major           String
+  institution     String
+  graduation_year Int
+  userId          Int
+  user            User   @relation(fields: [userId], references: [id])
+}
 
-  // Optional: One-to-many relationship with User (if you need to track repositories separately)
-  owner User @relation(fields: [ownerId], references: [githubId])
+model Experience {
+  id                        Int                   @id @default(autoincrement())
+  userId                    Int
+  years_of_experience       Int
+  previous_role             String
+  relevant_skills           String[]
+  key_achievements          String[]
+  certifications            String[]
+  education_major           String
+  education_institution     String
+  education_graduation_year Int
+  internships               Internship[]
+  language_proficiency      LanguageProficiency[]
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Internship {
+  id               Int        @id @default(autoincrement())
+  company          String
+  role             String
+  duration_months  Int
+  responsibilities String[]
+  experienceId     Int
+  experience       Experience @relation(fields: [experienceId], references: [id])
+}
+
+model LanguageProficiency {
+  id           Int              @id @default(autoincrement())
+  language     String
+  proficiency  ProficiencyLevel
+  experienceId Int
+  experience   Experience       @relation(fields: [experienceId], references: [id])
+}
+
+enum ProficiencyLevel {
+  Beginner
+  Intermediate
+  Advanced
+  Fluent
+}
+
+model JobPosting {
+  id                            Int                     @id @default(autoincrement())
+  job_id                        String                  @unique
+  job_title                     String
+  required_skills               String[]
+  experience_level              RequiredExperienceLevel
+  salary_range_min              Int
+  salary_range_max              Int
+  location                      String
+  remote                        Boolean
+  job_description               String
+  job_type                      JobType
+  team_culture                  String
+  work_schedule_flexibility     String
+  career_growth_potential       String
+  company_benefits              String[]
+  diversity_inclusion_statement String
+  work_environment              String
+  company_values                String[]
+  travel_requirements           String
+  preferred_soft_skills         String[]
+  cultural_fit                  String[]
+  ideal_candidate_profile       String
+  experience_requirements       ExperienceRequirements  @relation(fields: [experienceRequirementsId], references: [id])
+
+  companyId                Int
+  company                  CompanyHR     @relation(fields: [companyId], references: [id])
+  experienceRequirementsId Int
+  Application              Application[]
+}
+
+model ExperienceRequirements {
+  id                  Int             @id @default(autoincrement())
+  years_of_experience Int
+  relevant_skills     String[]
+  key_achievements    String[]
+  certifications      String[]
+  JobPosting          JobPosting[]
+  HRPreferences       HRPreferences[]
+}
+
+enum RequiredExperienceLevel {
+  EntryLevel
+  MidLevel
+  SeniorLevel
+}
+
+enum JobType {
+  FullTime
+  PartTime
+  Contract
+  Internship
+}
+
+model SalaryRange {
+  id  Int @id @default(autoincrement())
+  min Int
+  max Int
+}
+
+model SalaryExpectations {
+  id         Int  @id @default(autoincrement())
+  min_salary Int  @default(0)
+  max_salary Int  @default(0)
+  userId     Int  @unique
+  user       User @relation(fields: [userId], references: [id])
+}
+
+model JobPreferences {
+  id              Int              @id @default(autoincrement())
+  remote          RemotePreference
+  salary          Int
+  company_culture String
+  userId          Int              @unique
+  user            User             @relation(fields: [userId], references: [id])
+}
+
+enum RemotePreference {
+  Onsite
+  Hybrid
+  Remote
+}
+
+model CompanyHR {
+  id                         Int           @id @default(autoincrement())
+  company_name               String
+  industry                   String[]
+  location                   String
+  company_size               String
+  company_overview           String
+  company_mission            String?
+  employee_engagement_rating Float
+  technology_stack           String[]
+  hr_preferences             HRPreferences @relation(fields: [hRPreferencesId], references: [id])
+  job_postings               JobPosting[]
+  hRPreferencesId            Int
+}
+
+model HRPreferences {
+  id                          Int                    @id @default(autoincrement())
+  min_experience_years        Int
+  max_experience_years        Int
+  preferred_degree            String
+  preferred_skills            String[]
+  preferred_qualities         String[]
+  preferred_certifications    String[]
+  preferred_experience        ExperienceRequirements @relation(fields: [experienceRequirementsId], references: [id])
+  preferred_work_life_balance WorkLifeBalance
+  preferred_learning_focus    String
+  values_alignment            String[]
+  CompanyHR                   CompanyHR[]
+  experienceRequirementsId    Int
+}
+
+enum WorkLifeBalance {
+  Flexible
+  Standard
+  WorkLifeIntegration
+}
+
+model Application {
+  id           Int               @id @default(autoincrement())
+  userId       Int
+  jobPostingId Int
+  appliedAt    DateTime          @default(now())
+  status       ApplicationStatus
+  user         User              @relation(fields: [userId], references: [id])
+  jobPosting   JobPosting        @relation(fields: [jobPostingId], references: [id])
+}
+
+enum ApplicationStatus {
+  Pending
+  Accepted
+  Rejected
 }
