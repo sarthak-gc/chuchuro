@@ -1,35 +1,56 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { theme } from "./styles/theme";
+import { ThemeProvider } from "styled-components";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import Navbar from "./components/common/Navbar/Navbar";
+import UserProfileForm from "./components/user/UserProfileForm/UserProfileForm";
+import JobFeed from "./components/user/JobFeed/JobFeed";
+import HRDashboard from "./components/hr/HRDashboard/HRDashboard";
+import { GlobalStyles } from "./styles/GlobalStyles";
+import Signup from "./components/auth/signup/Signup";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <ThemeProvider theme={theme}>
+      <GlobalStyles />
+      <Router>
+        <div className="App">
+          <Navbar />
+          <main style={{ paddingTop: "20px", minHeight: "calc(100vh - 84px)" }}>
+            <Routes>
+              <Route path="/" element={<Navigate to="/jobs" replace />} />
+              <Route path="/sign-up/user" element={<Signup type="user" />} />
+              <Route path="/sign-up/hr" element={<Signup type="hr" />} />
+              <Route path="/profile" element={<UserProfileForm />} />
+              <Route path="/jobs" element={<JobFeed />} />
+              <Route path="/applications" element={<ApplicationsPage />} />
+              <Route path="/hr-dashboard" element={<HRDashboard />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </main>
+        </div>
+      </Router>
+    </ThemeProvider>
+  );
 }
 
-export default App
+// Temporary placeholder components
+const ApplicationsPage = () => (
+  <div style={{ padding: "40px", textAlign: "center" }}>
+    <h2>My Applications</h2>
+    <p>Your job applications will appear here.</p>
+  </div>
+);
+
+const NotFound = () => (
+  <div style={{ padding: "40px", textAlign: "center" }}>
+    <h2>404 - Page Not Found</h2>
+    <p>The page you're looking for doesn't exist.</p>
+  </div>
+);
+
+export default App;
