@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String  @id @default(uuid())
+  githubId       String  @unique
+  githubUserName String  @unique
+  email          String? @unique
+  name           String?
+  imageUrl       String
+  bio            String?
+  location       String?
+  company        String?
+  blog           String?
+
+  publicRepos  Int
+  totalRepoCnt Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  repositories Repository[]
+
+  @@index([githubId])
+}
+
+model Repository {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  url         String
+  ownerId     String
+  createdAt   DateTime @default(now())
+
+  // Optional: One-to-many relationship with User (if you need to track repositories separately)
+  owner User @relation(fields: [ownerId], references: [githubId])
+}
