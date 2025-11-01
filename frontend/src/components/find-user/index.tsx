@@ -619,31 +619,14 @@ const UserInfo = styled.div`
   color: white;
 `;
 
-const NextButton = styled.button`
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  padding: 10px 20px;
+const ErrorMessage = styled.div`
+  color: #e53e3e;
   font-size: 0.9rem;
-  font-weight: 600;
-  color: white;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  z-index: 10;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-  }
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(229, 62, 62, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(229, 62, 62, 0.2);
 `;
 
 const FindUser = () => {
@@ -654,8 +637,17 @@ const FindUser = () => {
   const [showResume, setShowResume] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [activeTemplate, setActiveTemplate] = useState("modern");
+  const [error, setError] = useState("");
 
-  const [simulatedApiResponse, setSimulatedApiResponse] = useState<any>({
+  // Debug state to track what's happening
+  const [debugInfo, setDebugInfo] = useState({
+    apiResponse: null,
+    transformedData: null,
+    currentStep: "initial",
+  });
+
+  // Fixed simulated API response - CORRECTED STRUCTURE
+  const simulatedApiResponse = {
     response: {
       skills: {
         Frontend: [
@@ -712,31 +704,38 @@ const FindUser = () => {
         personal_info: {
           firstName: "Achyut",
           lastName: "Thapa",
-          contact: null,
-          email: null,
-          location: null,
+          contact: "+977 9841234567",
+          email: "achyut@example.com",
+          location: "Kathmandu, Nepal",
           socials: {
-            LinkedIn: null,
+            LinkedIn: "https://linkedin.com/in/achyutthapa",
             GitHub: "https://github.com/achyutthapa7",
           },
-          personalWebsite: null,
+          personalWebsite: "https://achyutthapa.com",
         },
-        education: [],
+        education: [
+          {
+            institution: "Patan Multiple Campus",
+            degree: "Bachelor of Computer Application",
+            duration: "2023-Present",
+            details: "Focus on Software Engineering and Web Technologies",
+          },
+        ],
         projects: [
           {
             name: "twinspark",
             description:
               "A project focused on the MERN stack and related technologies.",
-            live: null,
+            live: "https://twinspark.example.com",
             code: "https://github.com/achyutthapa7/twinspark",
           },
         ],
       },
     },
     id: "b0822fd3-0c07-4db1-9f8d-1f8d081a20c9",
-  });
+  };
 
-  // Resume data state with new format
+  // Resume data state with proper initial structure
   const [resumeData, setResumeData] = useState({
     personal_info: {
       name: "Sarthak GC",
@@ -772,36 +771,65 @@ const FindUser = () => {
     },
   });
 
-  const fetchUser = async () => {
-    await fetch(`http://localhost:3000/analyze?u=${username}`).then((res) => {
-      setSimulatedApiResponse(res);
-    });
-  };
-  // Function to transform API response to our resume format
-  const transformApiDataToResume = (apiData) => {
-    const { personal_info, education, projects } = apiData.details;
-    const skills = apiData.skills;
+  // REAL API CALL FUNCTION - UNCOMMENT WHEN READY
+  const fetchUser = async (username) => {
+    try {
+      setDebugInfo((prev) => ({ ...prev, currentStep: "fetching_api" }));
+      const response = await fetch(
+        `http://localhost:3000/analyze?u=${username}`
+      );
 
-    return {
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setDebugInfo((prev) => ({ ...prev, apiResponse: data }));
+      return data;
+    } catch (error) {
+      console.error("API Error:", error);
+      setError(`Failed to fetch user data: ${error.message}`);
+      // Fallback to simulated data
+      return simulatedApiResponse;
+    }
+  };
+
+  // FIXED: Proper data transformation function
+  const transformApiDataToResume = (apiData) => {
+    console.log("Transforming API data:", apiData);
+
+    // Handle both direct response and nested response structure
+    const responseData = apiData.response || apiData;
+    const { personal_info, education, projects } = responseData.details;
+    const skills = responseData.skills;
+
+    setDebugInfo((prev) => ({
+      ...prev,
+      currentStep: "transforming_data",
+      personal_info,
+      skills,
+    }));
+
+    const transformed = {
       personal_info: {
         name:
-          `${personal_info.firstName || ""} ${
-            personal_info.lastName || ""
+          `${personal_info?.firstName || ""} ${
+            personal_info?.lastName || ""
           }`.trim() || "GitHub User",
         title: "Full Stack Developer",
-        email: personal_info.email || "email@example.com",
-        phone: personal_info.contact || "+977 9841234567",
-        location: personal_info.location || "Location not specified",
-        website: personal_info.personalWebsite || "",
-        linkedin: personal_info.socials?.LinkedIn || "",
-        github: personal_info.socials?.GitHub || "",
+        email: personal_info?.email || "email@example.com",
+        phone: personal_info?.contact || "+977 9841234567",
+        location: personal_info?.location || "Location not specified",
+        website: personal_info?.personalWebsite || "",
+        linkedin: personal_info?.socials?.LinkedIn || "",
+        github: personal_info?.socials?.GitHub || "",
       },
       sections: {
         summary: true,
         experience: true,
-        education: education && education.length > 0,
-        skills: Object.keys(skills).length > 0,
-        projects: projects && projects.length > 0,
+        education: !!(education && education.length > 0),
+        skills: !!(skills && Object.keys(skills).length > 0),
+        projects: !!(projects && projects.length > 0),
         certifications: false,
       },
       content: {
@@ -817,32 +845,64 @@ const FindUser = () => {
           },
         ],
         education: education || [],
-        skills: skills,
+        skills: skills || {},
         projects: projects || [],
         certifications: [],
       },
     };
+
+    setDebugInfo((prev) => ({ ...prev, transformedData: transformed }));
+    return transformed;
   };
 
-  const handleNext = () => {
-    if (username.trim()) {
-      setIsLoading(true);
-      setShowRightPanel(true);
-      setIsExpanded(true);
-      fetchUser();
-      // // Simulate API call
-      // setTimeout(() => {
-      //   // Transform the simulated API response to our resume format
-      //   const transformedData = transformApiDataToResume(
-      //     simulatedApiResponse.response
-      //   );
-      //   setResumeData((prev) => ({
-      //     ...prev,
-      //     ...transformedData,
-      //   }));
-      //   setIsLoading(false);
-      //   setShowResume(true);
-      // }, 2000);
+  const handleNext = async () => {
+    if (!username.trim()) {
+      setError("Please enter a GitHub username");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+    setShowRightPanel(true);
+    setIsExpanded(true);
+    setDebugInfo((prev) => ({ ...prev, currentStep: "starting_search" }));
+
+    try {
+      // Option 1: Use real API (uncomment when ready)
+      // const apiData = await fetchUser(username);
+
+      // Option 2: Use simulated data (for testing)
+      const apiData = simulatedApiResponse;
+
+      setDebugInfo((prev) => ({
+        ...prev,
+        currentStep: "data_received",
+        apiResponse: apiData,
+      }));
+
+      // Transform the API response to our resume format
+      const transformedData = transformApiDataToResume(apiData);
+
+      setDebugInfo((prev) => ({ ...prev, currentStep: "data_transformed" }));
+
+      // Update resume data with transformed data
+      setResumeData((prev) => ({
+        ...prev,
+        ...transformedData,
+      }));
+
+      setDebugInfo((prev) => ({ ...prev, currentStep: "state_updated" }));
+
+      // Show resume after a brief delay
+      setTimeout(() => {
+        setIsLoading(false);
+        setShowResume(true);
+        setDebugInfo((prev) => ({ ...prev, currentStep: "resume_shown" }));
+      }, 1000);
+    } catch (error) {
+      console.error("Error in handleNext:", error);
+      setError(`Failed to process user data: ${error.message}`);
+      setIsLoading(false);
     }
   };
 
@@ -852,6 +912,12 @@ const FindUser = () => {
     setShowResume(false);
     setIsEditing(false);
     setUsername("");
+    setError("");
+    setDebugInfo({
+      apiResponse: null,
+      transformedData: null,
+      currentStep: "initial",
+    });
   };
 
   const handleSave = () => {
@@ -988,7 +1054,7 @@ const FindUser = () => {
     });
   };
 
-  const { personal_info, sections, content, styling } = resumeData;
+  const { personal_info, sections, content } = resumeData;
 
   // Render editing controls for the left panel
   const renderEditorControls = () => {
@@ -1155,7 +1221,7 @@ const FindUser = () => {
           </ControlPanel>
         )}
 
-        {sections.skills && (
+        {sections.skills && Object.keys(content.skills).length > 0 && (
           <ControlPanel>
             <ControlTitle>🛠️ Skills</ControlTitle>
             {Object.entries(content.skills).map(([category, skills]) => (
@@ -1227,7 +1293,7 @@ const FindUser = () => {
           </ControlPanel>
         )}
 
-        {sections.education && (
+        {sections.education && content.education.length > 0 && (
           <ControlPanel>
             <ControlTitle>🎓 Education</ControlTitle>
             {content.education.map((edu, index) => (
@@ -1392,6 +1458,34 @@ const FindUser = () => {
             </AddButton>
           </ControlPanel>
         )}
+
+        {/* Debug Info - Remove in production */}
+        {process.env.NODE_ENV === "development" && (
+          <ControlPanel>
+            <ControlTitle>🐛 Debug Info</ControlTitle>
+            <div style={{ fontSize: "0.8rem", color: "#718096" }}>
+              <p>
+                <strong>Current Step:</strong> {debugInfo.currentStep}
+              </p>
+              <p>
+                <strong>Username:</strong> {username}
+              </p>
+              <p>
+                <strong>Loading:</strong> {isLoading ? "Yes" : "No"}
+              </p>
+              <p>
+                <strong>Show Resume:</strong> {showResume ? "Yes" : "No"}
+              </p>
+              <p>
+                <strong>Skills Count:</strong>{" "}
+                {Object.keys(content.skills).length}
+              </p>
+              <p>
+                <strong>Personal Name:</strong> {personal_info.name}
+              </p>
+            </div>
+          </ControlPanel>
+        )}
       </>
     );
   };
@@ -1399,7 +1493,7 @@ const FindUser = () => {
   // Common resume content component
   const ResumeContent = () => (
     <>
-      {sections.summary && (
+      {sections.summary && content.summary && (
         <Section>
           <SectionTitle>Professional Summary</SectionTitle>
           <p>{content.summary}</p>
@@ -1529,33 +1623,35 @@ const FindUser = () => {
                     <h4 style={{ margin: "0 0 5px 0", color: "#2d3748" }}>
                       {project.name}
                     </h4>
-                    {project.live && (
-                      <a
-                        href={project.live}
-                        style={{
-                          color: "#667eea",
-                          textDecoration: "none",
-                          marginRight: "10px",
-                        }}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Live Demo
-                      </a>
-                    )}
-                    {project.code && (
-                      <a
-                        href={project.code}
-                        style={{
-                          color: "#667eea",
-                          textDecoration: "none",
-                        }}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Source Code
-                      </a>
-                    )}
+                    <div>
+                      {project.live && (
+                        <a
+                          href={project.live}
+                          style={{
+                            color: "#667eea",
+                            textDecoration: "none",
+                            marginRight: "10px",
+                          }}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Live Demo
+                        </a>
+                      )}
+                      {project.code && (
+                        <a
+                          href={project.code}
+                          style={{
+                            color: "#667eea",
+                            textDecoration: "none",
+                          }}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Source Code
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <p style={{ color: "#4a5568", lineHeight: "1.6", margin: 0 }}>
@@ -1571,6 +1667,15 @@ const FindUser = () => {
 
   // Render the selected resume template
   const renderResume = () => {
+    if (!personal_info.name) {
+      return (
+        <div style={{ textAlign: "center", padding: "40px", color: "#718096" }}>
+          <h3>No data available</h3>
+          <p>Please check if the user data was loaded correctly.</p>
+        </div>
+      );
+    }
+
     switch (activeTemplate) {
       case "professional":
         return (
@@ -1672,6 +1777,8 @@ const FindUser = () => {
               disabled={isLoading}
             />
 
+            {error && <ErrorMessage>{error}</ErrorMessage>}
+
             <Button
               onClick={handleNext}
               disabled={!username.trim() || isLoading}
@@ -1694,11 +1801,7 @@ const FindUser = () => {
               <Button onClick={() => setIsEditing(!isEditing)}>
                 {isEditing ? "Preview Mode" : "Edit Mode"}
               </Button>
-              {isEditing && (
-                <Button onClick={handleSave} primary>
-                  Save Resume
-                </Button>
-              )}
+              {isEditing && <Button onClick={handleSave}>Save Resume</Button>}
               <Button onClick={handleReset} variant="secondary">
                 New Search
               </Button>
