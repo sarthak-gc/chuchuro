@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Heart, X, Star, Filter, Search, Bookmark, Share2 } from "lucide-react";
 import JobCard from "../JobCard/JobCard";
 import {
@@ -131,6 +131,7 @@ const mockJobs = [
 ];
 
 const JobFeed: React.FC = () => {
+  const user = JSON.parse(localStorage.getItem("user"));
   const location = useLocation();
 
   const params = new URLSearchParams(location.search);
@@ -152,6 +153,17 @@ const JobFeed: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(false);
   const [savedJobs, setSavedJobs] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      await fetch(`http://localhost:3000/matched/${user.response.id}`).then(
+        (res) => {
+          console.log(res, "jobs");
+        }
+      );
+    };
+    fetchJobs();
+  }, []);
 
   const handleSwipe = (jobId: string, direction: "left" | "right") => {
     console.log(`Swiped ${direction} on job ${jobId}`);
@@ -385,7 +397,7 @@ const JobFeed: React.FC = () => {
             </NavItem>
             <NavItem
               onClick={() => {
-                navigate("/applied");
+                navigate("/user/applied");
               }}
             >
               <Share2 size={20} />

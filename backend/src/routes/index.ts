@@ -38,3 +38,5 @@ router.post("/job", createJob);
 
 router.post("/hr/signup", registerHandler);
 router.post("/hr/login", loginHandler);
+
+router.get("")

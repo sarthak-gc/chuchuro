@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
 
 // Animations
@@ -15,7 +15,7 @@ const fadeIn = keyframes`
 
 const slideIn = keyframes`
   from {
-    transform: translateX(-30px);
+    transform: translateX(-100%);
     opacity: 0;
   }
   to {
@@ -36,38 +36,59 @@ const pulse = keyframes`
   }
 `;
 
+const bounceIn = keyframes`
+  0% {
+    opacity: 0;
+    transform: scale(0.3) translateX(50px);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05) translateX(-10px);
+  }
+  70% {
+    transform: scale(0.9) translateX(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateX(0);
+  }
+`;
+
 // Styled Components
 const Container = styled.div`
   display: flex;
   min-height: ${(props) => (props.isExpanded ? "700px" : "400px")};
+  height: ${(props) => (props.isExpanded ? "auto" : "400px")};
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 20px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   margin: 20px;
-  font-family: "Inter", sans-serif;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
 const LeftPanel = styled.div`
-  flex: ${(props) => (props.isExpanded ? "0.35" : "1")};
+  flex: ${(props) => (props.isExpanded ? "0.4" : "1")};
   padding: 30px;
-  background: rgba(255, 255, 255, 0.98);
+  background: rgba(255, 255, 255, 0.95);
   display: flex;
   flex-direction: column;
-  transition: all 0.4s ease;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-y: auto;
+  max-height: ${(props) => (props.isExpanded ? "100vh" : "none")};
 `;
 
 const RightPanel = styled.div`
-  flex: ${(props) => (props.isExpanded ? "0.65" : "1")};
-  padding: ${(props) => (props.showResume ? "30px" : "40px")};
+  flex: ${(props) => (props.isExpanded ? "0.6" : "1")};
+  padding: ${(props) => (props.showResume ? "20px" : "40px")};
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   display: flex;
   align-items: ${(props) => (props.showResume ? "flex-start" : "center")};
   justify-content: center;
-  transition: all 0.4s ease;
+  min-height: ${(props) => (props.isExpanded ? "660px" : "300px")};
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-y: auto;
 `;
 
@@ -81,12 +102,18 @@ const Title = styled.h1`
   -webkit-text-fill-color: transparent;
 `;
 
+const Subtitle = styled.p`
+  color: #718096;
+  font-size: 0.9rem;
+  margin-bottom: 25px;
+`;
+
 const Input = styled.input`
   width: 100%;
   padding: 12px 16px;
   font-size: 0.9rem;
   border: 2px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 8px;
   outline: none;
   transition: all 0.3s ease;
   background: white;
@@ -108,7 +135,7 @@ const Button = styled.button`
       ? "linear-gradient(135deg, #718096, #4a5568)"
       : "linear-gradient(135deg, #667eea, #764ba2)"};
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   margin-right: 8px;
@@ -118,15 +145,77 @@ const Button = styled.button`
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
   }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
 `;
 
+const LoadingContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: ${bounceIn} 0.8s ease-out;
+  width: 100%;
+`;
+
+const Spinner = styled.div`
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid white;
+  border-radius: 50%;
+  animation: ${pulse} 1.5s ease-in-out infinite;
+  margin-bottom: 15px;
+`;
+
+const LoadingText = styled.p`
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 500;
+  text-align: center;
+  margin: 0;
+`;
+
+const LoadingDots = styled.span`
+  &::after {
+    content: "";
+    animation: dots 1.5s steps(5, end) infinite;
+  }
+
+  @keyframes dots {
+    0%,
+    20% {
+      content: ".";
+    }
+    40% {
+      content: "..";
+    }
+    60%,
+    100% {
+      content: "...";
+    }
+  }
+`;
+
+const GitHubIcon = styled.div`
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+  color: white;
+  text-align: center;
+`;
+
+// Control Panel Components
 const ControlPanel = styled.div`
   background: white;
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  animation: ${slideIn} 0.3s ease-out;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  animation: ${slideIn} 0.5s ease-out;
 `;
 
 const ControlTitle = styled.h3`
@@ -139,6 +228,38 @@ const ControlTitle = styled.h3`
   gap: 8px;
 `;
 
+const TemplateGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 15px;
+`;
+
+const TemplateCard = styled.div`
+  border: 2px solid ${(props) => (props.active ? "#667eea" : "#e2e8f0")};
+  border-radius: 8px;
+  padding: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: ${(props) => (props.active ? "#f7fafc" : "white")};
+
+  &:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+  }
+`;
+
+const TemplateName = styled.div`
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 5px;
+`;
+
+const TemplateDesc = styled.div`
+  font-size: 0.8rem;
+  color: #718096;
+`;
+
 const SectionList = styled.div`
   display: flex;
   flex-direction: column;
@@ -149,7 +270,7 @@ const SectionItem = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px;
+  padding: 12px 16px;
   background: #f8fafc;
   border-radius: 8px;
   border-left: 4px solid ${(props) => (props.active ? "#667eea" : "#e2e8f0")};
@@ -158,7 +279,7 @@ const SectionItem = styled.div`
 
   &:hover {
     background: #f1f5f9;
-    transform: translateX(5px);
+    transform: translateX(4px);
   }
 `;
 
@@ -209,16 +330,18 @@ const ToggleSlider = styled.span`
     background-color: white;
     transition: 0.4s;
     border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 `;
 
+// Resume Container
 const ResumeContainer = styled.div`
   width: 100%;
   max-width: 800px;
   background: white;
-  border-radius: 16px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-  animation: ${fadeIn} 0.5s ease-out;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  animation: ${fadeIn} 0.6s ease-out;
   position: relative;
   overflow: hidden;
 `;
@@ -238,23 +361,106 @@ const ActionButton = styled.button`
     props.primary ? "#667eea" : "rgba(255, 255, 255, 0.95)"};
   color: ${(props) => (props.primary ? "white" : "#2d3748")};
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 0.8rem;
   font-weight: 500;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
   &:hover {
     background: ${(props) => (props.primary ? "#5a6fd8" : "#f7fafc")};
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+`;
+
+// Field Editor Components
+const FieldEditor = styled.div`
+  margin-bottom: 20px;
+`;
+
+const FieldLabel = styled.label`
+  display: block;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+`;
+
+const FieldInput = styled.input`
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+
+  &:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    outline: none;
+  }
+`;
+
+const FieldTextarea = styled.textarea`
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+
+  &:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    outline: none;
+  }
+`;
+
+const AddButton = styled.button`
+  background: #48bb78;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  margin-top: 10px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: #38a169;
+    transform: translateY(-1px);
+  }
+`;
+
+const RemoveButton = styled.button`
+  background: #e53e3e;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  margin-left: 8px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: #c53030;
   }
 `;
 
 // Resume Template Components
+
+// Modern Template
 const ModernResume = styled.div`
   padding: 40px;
-  font-family: "Inter", sans-serif;
+  font-family: "Segoe UI", sans-serif;
   min-height: 600px;
 `;
 
@@ -262,25 +468,24 @@ const ModernHeader = styled.div`
   background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
   color: white;
   padding: 40px;
-  border-radius: 0;
+  border-radius: 12px 12px 0 0;
   margin: -40px -40px 40px -40px;
 `;
 
 const ModernName = styled.h1`
   font-size: 2.5rem;
   font-weight: 300;
-  margin-bottom: 8px;
-  letter-spacing: -0.5px;
+  margin-bottom: 5px;
 `;
 
 const ModernTitle = styled.h2`
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   font-weight: 400;
   opacity: 0.9;
   margin-bottom: 20px;
 `;
 
-const ContactInfo = styled.div`
+const ModernContact = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
@@ -288,9 +493,74 @@ const ContactInfo = styled.div`
   font-size: 0.9rem;
 `;
 
+const ModernSocial = styled.div`
+  display: flex;
+  gap: 15px;
+  margin-top: 15px;
+`;
+
+// Professional Template
+const ProfessionalResume = styled.div`
+  padding: 40px;
+  font-family: "Georgia", serif;
+  min-height: 600px;
+`;
+
+const ProfessionalHeader = styled.div`
+  text-align: center;
+  margin-bottom: 40px;
+  padding-bottom: 30px;
+  border-bottom: 2px solid #2d3748;
+`;
+
+const ProfessionalName = styled.h1`
+  font-size: 2.8rem;
+  font-weight: 300;
+  margin-bottom: 10px;
+  color: #2d3748;
+`;
+
+const ProfessionalTitle = styled.h2`
+  font-size: 1.3rem;
+  font-weight: 400;
+  color: #667eea;
+  margin-bottom: 20px;
+`;
+
+// Creative Template
+const CreativeResume = styled.div`
+  padding: 40px;
+  font-family: "Arial", sans-serif;
+  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+  min-height: 600px;
+`;
+
+const CreativeHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+  padding-bottom: 20px;
+  border-bottom: 3px solid #667eea;
+`;
+
+const CreativeName = styled.h1`
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin: 0;
+`;
+
+const CreativeTitle = styled.h2`
+  font-size: 1.1rem;
+  color: #718096;
+  margin: 5px 0 0 0;
+  font-weight: 400;
+`;
+
+// Common Resume Components
 const Section = styled.div`
   margin-bottom: 30px;
-  animation: ${fadeIn} 0.5s ease-out;
 `;
 
 const SectionTitle = styled.h3`
@@ -316,7 +586,6 @@ const SkillList = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 8px;
 `;
 
 const SkillTag = styled.span`
@@ -326,13 +595,6 @@ const SkillTag = styled.span`
   border-radius: 20px;
   font-size: 0.85rem;
   border: 1px solid #e2e8f0;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: #667eea;
-    color: white;
-    transform: translateY(-1px);
-  }
 `;
 
 const ExperienceList = styled.div`
@@ -344,135 +606,137 @@ const ExperienceList = styled.div`
 const ExperienceItem = styled.div`
   border-left: 3px solid #667eea;
   padding-left: 20px;
-  transition: all 0.3s ease;
-
-  &:hover {
-    border-left-color: #764ba2;
-    transform: translateX(5px);
-  }
 `;
 
-// Editable Components
-const EditableField = styled.div`
-  position: relative;
-  cursor: ${(props) => (props.editing ? "text" : "pointer")};
-  border-radius: 6px;
-  transition: all 0.3s ease;
-  padding: 4px 8px;
-  margin: -4px -8px;
-
-  &:hover {
-    background: ${(props) =>
-      props.editing ? "transparent" : "rgba(102, 126, 234, 0.08)"};
-  }
-`;
-
-const EditInput = styled.input`
-  width: 100%;
-  padding: 8px 12px;
-  border: 2px solid #667eea;
-  border-radius: 6px;
-  font-size: inherit;
-  font-family: inherit;
-  background: white;
-  outline: none;
-  transition: all 0.3s ease;
-
-  &:focus {
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-  }
-`;
-
-const EditTextarea = styled.textarea`
-  width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #667eea;
-  border-radius: 6px;
-  font-size: inherit;
-  font-family: inherit;
-  background: white;
-  outline: none;
-  resize: vertical;
-  min-height: 80px;
-  line-height: 1.5;
-  transition: all 0.3s ease;
-
-  &:focus {
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-  }
-`;
-
-const AddButton = styled.button`
-  background: #48bb78;
-  color: white;
-  border: none;
-  padding: 10px 18px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: 500;
-  margin-top: 12px;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: #38a169;
-    transform: translateY(-1px);
-  }
-`;
-
-const RemoveButton = styled.button`
-  background: #e53e3e;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.75rem;
-  font-weight: 500;
-  margin-left: 10px;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: #c53030;
-    transform: translateY(-1px);
-  }
-`;
-
-const LoadingContainer = styled.div`
+const EducationList = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  animation: ${fadeIn} 0.8s ease-out;
-  width: 100%;
+  gap: 15px;
 `;
 
-const Spinner = styled.div`
-  width: 50px;
-  height: 50px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-top: 3px solid white;
-  border-radius: 50%;
-  animation: ${pulse} 1.5s ease-in-out infinite;
-  margin-bottom: 20px;
-`;
-
-const GitHubIcon = styled.div`
-  font-size: 3rem;
-  margin-bottom: 20px;
-  color: white;
+const UserInfo = styled.div`
   text-align: center;
+  color: white;
+`;
+
+const NextButton = styled.button`
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
 `;
 
 const FindUser = () => {
   const [username, setUsername] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showRightPanel, setShowRightPanel] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showResume, setShowResume] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editingField, setEditingField] = useState(null);
+  const [activeTemplate, setActiveTemplate] = useState("modern");
 
-  // Enhanced resume data structure that will be populated from API
+  const [simulatedApiResponse, setSimulatedApiResponse] = useState<any>({
+    response: {
+      skills: {
+        Frontend: [
+          "React.js",
+          "Next.js",
+          "Redux.js",
+          "Redux Toolkit",
+          "TanStack Query (React Query)",
+          "Material-UI (MUI)",
+          "Tailwind CSS",
+          "CSS-in-JS (Styled Components, Emotion)",
+          "React Router",
+          "Formik",
+          "Slate.js",
+          "Framer Motion",
+        ],
+        Backend: [
+          "Node.js",
+          "Express.js",
+          "Socket.IO",
+          "JWT",
+          "REST APIs",
+          "WebSockets",
+          "Nodemailer",
+          "Zod",
+          "Multer",
+        ],
+        Databases: ["MongoDB", "Mongoose", "Redis"],
+        Languages: ["TypeScript"],
+        Testing: [
+          "Jest",
+          "Mocha",
+          "Chai",
+          "Sinon.js",
+          "Supertest",
+          "Playwright",
+          "WebdriverIO",
+          "Vitest",
+        ],
+        "DevOps & Tools": [
+          "Git",
+          "ESLint",
+          "Prettier",
+          "Webpack",
+          "Vite",
+          "Rollup",
+          "Babel",
+          "Husky",
+          "AWS SDK",
+          "esbuild",
+        ],
+      },
+      details: {
+        personal_info: {
+          firstName: "Achyut",
+          lastName: "Thapa",
+          contact: null,
+          email: null,
+          location: null,
+          socials: {
+            LinkedIn: null,
+            GitHub: "https://github.com/achyutthapa7",
+          },
+          personalWebsite: null,
+        },
+        education: [],
+        projects: [
+          {
+            name: "twinspark",
+            description:
+              "A project focused on the MERN stack and related technologies.",
+            live: null,
+            code: "https://github.com/achyutthapa7/twinspark",
+          },
+        ],
+      },
+    },
+    id: "b0822fd3-0c07-4db1-9f8d-1f8d081a20c9",
+  });
+
+  // Resume data state with new format
   const [resumeData, setResumeData] = useState({
     personal_info: {
       name: "",
@@ -500,148 +764,100 @@ const FindUser = () => {
       projects: [],
       certifications: [],
     },
+    styling: {
+      primaryColor: "#667eea",
+      secondaryColor: "#2d3748",
+      fontFamily: "Segoe UI, sans-serif",
+      layout: "modern",
+    },
   });
 
   const fetchUser = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(
-        `https://recriminative-tattlingly-izola.ngrok-free.dev/analyze?u=${username}`
-      );
-      const data = await response.json();
-      console.log("API Response:", data);
-
-      transformApiData(data.response);
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-      alert("Error fetching user data. Please try again.");
-    } finally {
-      setIsLoading(false);
-      setShowResume(true);
-    }
+    await fetch(`http://localhost:3000/analyze?u=${username}`).then((res) => {
+      setSimulatedApiResponse(res);
+    });
   };
+  // Function to transform API response to our resume format
+  const transformApiDataToResume = (apiData) => {
+    const { personal_info, education, projects } = apiData.details;
+    const skills = apiData.skills;
 
-  const transformApiData = (apiData) => {
-    const { skills, details } = apiData;
-    const { personal_info, education, projects } = details;
-
-    // Transform personal info
-    const transformedPersonalInfo = {
-      name:
-        personal_info.firstName && personal_info.lastName
-          ? `${personal_info.firstName} ${personal_info.lastName}`
-          : personal_info.firstName || personal_info.lastName || "GitHub User",
-      title: "Full Stack Developer", // Default title
-      email: personal_info.email || "Not provided",
-      phone: personal_info.contact || "Not provided",
-      location: personal_info.location || "Not provided",
-      website: personal_info.personalWebsite || "",
-      linkedin: personal_info.socials?.LinkedIn || "",
-      github: personal_info.socials?.GitHub || `https://github.com/${username}`,
-    };
-
-    // Transform skills
-    const transformedSkills = skills || {};
-
-    // Transform projects
-    const transformedProjects = (projects || []).map((project) => ({
-      id: Date.now() + Math.random(),
-      name: project.name || "Unnamed Project",
-      description: project.description || "No description available",
-      technologies: project.technologies || [],
-      link: project.code || project.live || "",
-    }));
-
-    // Transform education
-    const transformedEducation = (education || []).map((edu) => ({
-      id: Date.now() + Math.random(),
-      institution: edu.institution || "Unknown Institution",
-      degree: edu.degree || "Unknown Degree",
-      duration: edu.duration || "Not specified",
-      grade: edu.grade || "",
-    }));
-
-    // Create default summary based on skills
-    const skillCategories = Object.keys(transformedSkills);
-    const topSkills = skillCategories.flatMap(
-      (category) => transformedSkills[category]?.slice(0, 3) || []
-    );
-
-    const defaultSummary = `Experienced developer with expertise in ${topSkills
-      .slice(0, 3)
-      .join(", ")} and more. ${
-      projects?.length
-        ? `Has worked on ${projects.length} project${
-            projects.length > 1 ? "s" : ""
-          } including ${projects[0]?.name || "various applications"}.`
-        : ""
-    }`;
-
-    setResumeData((prev) => ({
-      ...prev,
-      personal_info: transformedPersonalInfo,
-      content: {
-        ...prev.content,
-        summary: defaultSummary,
-        skills: transformedSkills,
-        projects: transformedProjects,
-        education: transformedEducation,
-        experience: prev.content.experience, // Keep any existing experience
-        certifications: prev.content.certifications, // Keep any existing certifications
+    return {
+      personal_info: {
+        name:
+          `${personal_info.firstName || ""} ${
+            personal_info.lastName || ""
+          }`.trim() || "GitHub User",
+        title: "Full Stack Developer",
+        email: personal_info.email || "email@example.com",
+        phone: personal_info.contact || "+977 9841234567",
+        location: personal_info.location || "Location not specified",
+        website: personal_info.personalWebsite || "",
+        linkedin: personal_info.socials?.LinkedIn || "",
+        github: personal_info.socials?.GitHub || "",
       },
-    }));
+      sections: {
+        summary: true,
+        experience: true,
+        education: education && education.length > 0,
+        skills: Object.keys(skills).length > 0,
+        projects: projects && projects.length > 0,
+        certifications: false,
+      },
+      content: {
+        summary:
+          "Experienced developer with expertise in modern web technologies. Passionate about creating efficient and scalable solutions.",
+        experience: [
+          {
+            title: "Full Stack Developer",
+            company: "Tech Solutions Inc.",
+            duration: "2022-Present",
+            description:
+              "Developed and maintained web applications using modern technologies.",
+          },
+        ],
+        education: education || [],
+        skills: skills,
+        projects: projects || [],
+        certifications: [],
+      },
+    };
   };
 
-  const handleNext = async () => {
+  const handleNext = () => {
     if (username.trim()) {
+      setIsLoading(true);
+      setShowRightPanel(true);
       setIsExpanded(true);
-      await fetchUser();
+      fetchUser();
+      // // Simulate API call
+      // setTimeout(() => {
+      //   // Transform the simulated API response to our resume format
+      //   const transformedData = transformApiDataToResume(
+      //     simulatedApiResponse.response
+      //   );
+      //   setResumeData((prev) => ({
+      //     ...prev,
+      //     ...transformedData,
+      //   }));
+      //   setIsLoading(false);
+      //   setShowResume(true);
+      // }, 2000);
     }
   };
 
   const handleReset = () => {
     setIsExpanded(false);
+    setShowRightPanel(false);
     setShowResume(false);
     setIsEditing(false);
     setUsername("");
-    setEditingField(null);
-
-    // Reset resume data
-    setResumeData({
-      personal_info: {
-        name: "",
-        title: "Full Stack Developer",
-        email: "",
-        phone: "",
-        location: "",
-        website: "",
-        linkedin: "",
-        github: "",
-      },
-      sections: {
-        summary: true,
-        experience: true,
-        education: true,
-        skills: true,
-        projects: true,
-        certifications: false,
-      },
-      content: {
-        summary: "",
-        experience: [],
-        education: [],
-        skills: {},
-        projects: [],
-        certifications: [],
-      },
-    });
   };
 
   const handleSave = () => {
     console.log("Final Resume Data:", JSON.stringify(resumeData, null, 2));
     setIsEditing(false);
-    setEditingField(null);
-    alert("Resume saved successfully! Check console for data.");
+    alert("Resume saved! Check console for data.");
   };
 
   const toggleSection = (section) => {
@@ -654,91 +870,181 @@ const FindUser = () => {
     }));
   };
 
-  const startEditing = (fieldPath, value = "") => {
-    setEditingField({ path: fieldPath, value });
-  };
-
-  const saveEdit = (newValue) => {
-    if (editingField) {
-      const path = editingField.path.split(".");
-      setResumeData((prev) => {
-        const updated = JSON.parse(JSON.stringify(prev));
-        let current = updated;
-
-        for (let i = 0; i < path.length - 1; i++) {
-          current = current[path[i]];
-        }
-        current[path[path.length - 1]] = newValue;
-
-        return updated;
-      });
-    }
-    setEditingField(null);
-  };
-
-  const addItem = (arrayPath, template) => {
-    const path = arrayPath.split(".");
+  const updateField = (path, value) => {
+    const paths = path.split(".");
     setResumeData((prev) => {
       const updated = JSON.parse(JSON.stringify(prev));
       let current = updated;
 
-      for (let i = 0; i < path.length - 1; i++) {
-        current = current[path[i]];
+      for (let i = 0; i < paths.length - 1; i++) {
+        current = current[paths[i]];
       }
-      current[path[path.length - 1]].push({
-        ...template,
-        id: Date.now() + Math.random(),
-      });
+      current[paths[paths.length - 1]] = value;
 
       return updated;
     });
   };
 
-  const removeItem = (arrayPath, index) => {
-    const path = arrayPath.split(".");
+  const addArrayItem = (path, template) => {
+    const paths = path.split(".");
     setResumeData((prev) => {
       const updated = JSON.parse(JSON.stringify(prev));
       let current = updated;
 
-      for (let i = 0; i < path.length - 1; i++) {
-        current = current[path[i]];
+      for (let i = 0; i < paths.length - 1; i++) {
+        current = current[paths[i]];
       }
-      current[path[path.length - 1]].splice(index, 1);
+      current[paths[paths.length - 1]].push(template);
 
       return updated;
     });
   };
 
-  const updateNestedField = (path, value) => {
-    const pathArray = path.split(".");
+  const removeArrayItem = (path, index) => {
+    const paths = path.split(".");
     setResumeData((prev) => {
       const updated = JSON.parse(JSON.stringify(prev));
       let current = updated;
 
-      for (let i = 0; i < pathArray.length - 1; i++) {
-        current = current[pathArray[i]];
+      for (let i = 0; i < paths.length - 1; i++) {
+        current = current[paths[i]];
       }
-      current[pathArray[pathArray.length - 1]] = value;
+      current[paths[paths.length - 1]] = current[
+        paths[paths.length - 1]
+      ].filter((_, i) => i !== index);
 
       return updated;
     });
   };
 
-  const { personal_info, sections, content } = resumeData;
+  const addSkill = (category) => {
+    setResumeData((prev) => ({
+      ...prev,
+      content: {
+        ...prev.content,
+        skills: {
+          ...prev.content.skills,
+          [category]: [...(prev.content.skills[category] || []), "New Skill"],
+        },
+      },
+    }));
+  };
 
-  // Render editor controls
+  const removeSkill = (category, index) => {
+    setResumeData((prev) => ({
+      ...prev,
+      content: {
+        ...prev.content,
+        skills: {
+          ...prev.content.skills,
+          [category]: prev.content.skills[category].filter(
+            (_, i) => i !== index
+          ),
+        },
+      },
+    }));
+  };
+
+  const updateSkill = (category, index, value) => {
+    setResumeData((prev) => ({
+      ...prev,
+      content: {
+        ...prev.content,
+        skills: {
+          ...prev.content.skills,
+          [category]: prev.content.skills[category].map((skill, i) =>
+            i === index ? value : skill
+          ),
+        },
+      },
+    }));
+  };
+
+  const addSkillCategory = () => {
+    const newCategory = "New Category";
+    setResumeData((prev) => ({
+      ...prev,
+      content: {
+        ...prev.content,
+        skills: {
+          ...prev.content.skills,
+          [newCategory]: ["New Skill"],
+        },
+      },
+    }));
+  };
+
+  const removeSkillCategory = (category) => {
+    setResumeData((prev) => {
+      const newSkills = { ...prev.content.skills };
+      delete newSkills[category];
+      return {
+        ...prev,
+        content: {
+          ...prev.content,
+          skills: newSkills,
+        },
+      };
+    });
+  };
+
+  const { personal_info, sections, content, styling } = resumeData;
+
+  // Render editing controls for the left panel
   const renderEditorControls = () => {
     return (
       <>
         <ControlPanel>
+          <ControlTitle>🎨 Resume Templates</ControlTitle>
+          <TemplateGrid>
+            <TemplateCard
+              active={activeTemplate === "modern"}
+              onClick={() => setActiveTemplate("modern")}
+            >
+              <TemplateName>Modern</TemplateName>
+              <TemplateDesc>Clean and professional</TemplateDesc>
+            </TemplateCard>
+            <TemplateCard
+              active={activeTemplate === "professional"}
+              onClick={() => setActiveTemplate("professional")}
+            >
+              <TemplateName>Professional</TemplateName>
+              <TemplateDesc>Traditional layout</TemplateDesc>
+            </TemplateCard>
+            <TemplateCard
+              active={activeTemplate === "creative"}
+              onClick={() => setActiveTemplate("creative")}
+            >
+              <TemplateName>Creative</TemplateName>
+              <TemplateDesc>Modern with colors</TemplateDesc>
+            </TemplateCard>
+          </TemplateGrid>
+        </ControlPanel>
+
+        <ControlPanel>
+          <ControlTitle>📝 Personal Information</ControlTitle>
+          {Object.entries(personal_info).map(([key, value]) => (
+            <FieldEditor key={key}>
+              <FieldLabel>
+                {key.charAt(0).toUpperCase() + key.slice(1).replace("_", " ")}
+              </FieldLabel>
+              <FieldInput
+                type="text"
+                value={value}
+                onChange={(e) =>
+                  updateField(`personal_info.${key}`, e.target.value)
+                }
+                placeholder={`Enter ${key.replace("_", " ")}`}
+              />
+            </FieldEditor>
+          ))}
+        </ControlPanel>
+
+        <ControlPanel>
           <ControlTitle>📑 Resume Sections</ControlTitle>
           <SectionList>
             {Object.entries(sections).map(([section, enabled]) => (
-              <SectionItem
-                key={section}
-                active={enabled}
-                onClick={() => toggleSection(section)}
-              >
+              <SectionItem key={section} active={enabled}>
                 <SectionName>
                   {section.charAt(0).toUpperCase() + section.slice(1)}
                 </SectionName>
@@ -746,7 +1052,7 @@ const FindUser = () => {
                   <ToggleInput
                     type="checkbox"
                     checked={enabled}
-                    onChange={() => {}}
+                    onChange={() => toggleSection(section)}
                   />
                   <ToggleSlider />
                 </ToggleSwitch>
@@ -758,45 +1064,249 @@ const FindUser = () => {
         {sections.summary && (
           <ControlPanel>
             <ControlTitle>💼 Professional Summary</ControlTitle>
-            <EditableField
-              editing={isEditing && editingField?.path === "content.summary"}
-              onClick={() =>
-                isEditing && startEditing("content.summary", content.summary)
-              }
-            >
-              {editingField?.path === "content.summary" ? (
-                <EditTextarea
-                  value={editingField.value}
-                  onChange={(e) =>
-                    setEditingField({ ...editingField, value: e.target.value })
-                  }
-                  onBlur={() => saveEdit(editingField.value)}
-                  autoFocus
-                />
-              ) : (
-                <p style={{ color: "#4a5568", lineHeight: "1.6" }}>
-                  {content.summary}
-                </p>
-              )}
-            </EditableField>
+            <FieldTextarea
+              value={content.summary}
+              onChange={(e) => updateField("content.summary", e.target.value)}
+              placeholder="Write your professional summary..."
+            />
           </ControlPanel>
         )}
 
-        {sections.skills && Object.keys(content.skills).length > 0 && (
+        {sections.experience && (
           <ControlPanel>
-            <ControlTitle>🛠️ Skills & Technologies</ControlTitle>
-            {Object.entries(content.skills).map(([category, skillList]) => (
-              <div key={category} style={{ marginBottom: "20px" }}>
-                <h4 style={{ color: "#2d3748", marginBottom: "10px" }}>
-                  {category}
-                </h4>
-                <SkillList>
-                  {skillList.map((skill, index) => (
-                    <SkillTag key={index}>{skill}</SkillTag>
-                  ))}
-                </SkillList>
+            <ControlTitle>💼 Work Experience</ControlTitle>
+            {content.experience.map((exp, index) => (
+              <div
+                key={index}
+                style={{
+                  marginBottom: "20px",
+                  padding: "15px",
+                  background: "#f8fafc",
+                  borderRadius: "8px",
+                }}
+              >
+                <FieldEditor>
+                  <FieldLabel>Job Title</FieldLabel>
+                  <FieldInput
+                    value={exp.title}
+                    onChange={(e) =>
+                      updateField(
+                        `content.experience.${index}.title`,
+                        e.target.value
+                      )
+                    }
+                  />
+                </FieldEditor>
+                <FieldEditor>
+                  <FieldLabel>Company</FieldLabel>
+                  <FieldInput
+                    value={exp.company}
+                    onChange={(e) =>
+                      updateField(
+                        `content.experience.${index}.company`,
+                        e.target.value
+                      )
+                    }
+                  />
+                </FieldEditor>
+                <FieldEditor>
+                  <FieldLabel>Duration</FieldLabel>
+                  <FieldInput
+                    value={exp.duration}
+                    onChange={(e) =>
+                      updateField(
+                        `content.experience.${index}.duration`,
+                        e.target.value
+                      )
+                    }
+                  />
+                </FieldEditor>
+                <FieldEditor>
+                  <FieldLabel>Description</FieldLabel>
+                  <FieldTextarea
+                    value={exp.description}
+                    onChange={(e) =>
+                      updateField(
+                        `content.experience.${index}.description`,
+                        e.target.value
+                      )
+                    }
+                  />
+                </FieldEditor>
+                <RemoveButton
+                  onClick={() => removeArrayItem("content.experience", index)}
+                >
+                  Remove Experience
+                </RemoveButton>
               </div>
             ))}
+            <AddButton
+              onClick={() =>
+                addArrayItem("content.experience", {
+                  title: "New Position",
+                  company: "Company Name",
+                  duration: "2023-Present",
+                  description: "Job description here...",
+                })
+              }
+            >
+              + Add Experience
+            </AddButton>
+          </ControlPanel>
+        )}
+
+        {sections.skills && (
+          <ControlPanel>
+            <ControlTitle>🛠️ Skills</ControlTitle>
+            {Object.entries(content.skills).map(([category, skills]) => (
+              <div key={category} style={{ marginBottom: "20px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "10px",
+                  }}
+                >
+                  <FieldEditor style={{ flex: 1, marginRight: "10px" }}>
+                    <FieldLabel>Category</FieldLabel>
+                    <FieldInput
+                      value={category}
+                      onChange={(e) => {
+                        const newSkills = { ...content.skills };
+                        delete newSkills[category];
+                        newSkills[e.target.value] = skills;
+                        updateField("content.skills", newSkills);
+                      }}
+                    />
+                  </FieldEditor>
+                  <RemoveButton
+                    onClick={() => removeSkillCategory(category)}
+                    style={{ marginTop: "25px" }}
+                  >
+                    Remove Category
+                  </RemoveButton>
+                </div>
+                <FieldLabel>Skills</FieldLabel>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                  }}
+                >
+                  {skills.map((skill, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        display: "flex",
+                        gap: "8px",
+                        alignItems: "center",
+                      }}
+                    >
+                      <FieldInput
+                        value={skill}
+                        onChange={(e) =>
+                          updateSkill(category, index, e.target.value)
+                        }
+                      />
+                      <RemoveButton
+                        onClick={() => removeSkill(category, index)}
+                      >
+                        Remove
+                      </RemoveButton>
+                    </div>
+                  ))}
+                </div>
+                <AddButton onClick={() => addSkill(category)}>
+                  + Add Skill to {category}
+                </AddButton>
+              </div>
+            ))}
+            <AddButton onClick={addSkillCategory}>+ Add New Category</AddButton>
+          </ControlPanel>
+        )}
+
+        {sections.education && (
+          <ControlPanel>
+            <ControlTitle>🎓 Education</ControlTitle>
+            {content.education.map((edu, index) => (
+              <div
+                key={index}
+                style={{
+                  marginBottom: "20px",
+                  padding: "15px",
+                  background: "#f8fafc",
+                  borderRadius: "8px",
+                }}
+              >
+                <FieldEditor>
+                  <FieldLabel>Institution</FieldLabel>
+                  <FieldInput
+                    value={edu.institution}
+                    onChange={(e) =>
+                      updateField(
+                        `content.education.${index}.institution`,
+                        e.target.value
+                      )
+                    }
+                  />
+                </FieldEditor>
+                <FieldEditor>
+                  <FieldLabel>Degree</FieldLabel>
+                  <FieldInput
+                    value={edu.degree}
+                    onChange={(e) =>
+                      updateField(
+                        `content.education.${index}.degree`,
+                        e.target.value
+                      )
+                    }
+                  />
+                </FieldEditor>
+                <FieldEditor>
+                  <FieldLabel>Duration</FieldLabel>
+                  <FieldInput
+                    value={edu.duration}
+                    onChange={(e) =>
+                      updateField(
+                        `content.education.${index}.duration`,
+                        e.target.value
+                      )
+                    }
+                  />
+                </FieldEditor>
+                <FieldEditor>
+                  <FieldLabel>Details</FieldLabel>
+                  <FieldInput
+                    value={edu.details || ""}
+                    onChange={(e) =>
+                      updateField(
+                        `content.education.${index}.details`,
+                        e.target.value
+                      )
+                    }
+                  />
+                </FieldEditor>
+                <RemoveButton
+                  onClick={() => removeArrayItem("content.education", index)}
+                >
+                  Remove Education
+                </RemoveButton>
+              </div>
+            ))}
+            <AddButton
+              onClick={() =>
+                addArrayItem("content.education", {
+                  institution: "University Name",
+                  degree: "Degree Name",
+                  duration: "2020-2024",
+                  details: "Additional details",
+                })
+              }
+            >
+              + Add Education
+            </AddButton>
           </ControlPanel>
         )}
 
@@ -805,7 +1315,7 @@ const FindUser = () => {
             <ControlTitle>🚀 Projects</ControlTitle>
             {content.projects.map((project, index) => (
               <div
-                key={project.id}
+                key={index}
                 style={{
                   marginBottom: "20px",
                   padding: "15px",
@@ -813,103 +1323,334 @@ const FindUser = () => {
                   borderRadius: "8px",
                 }}
               >
-                <h4 style={{ color: "#2d3748", marginBottom: "8px" }}>
-                  {project.name}
-                </h4>
-                <p style={{ color: "#4a5568", marginBottom: "8px" }}>
-                  {project.description}
-                </p>
-                {project.link && (
-                  <p style={{ marginBottom: "8px" }}>
-                    <a
-                      href={project.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ color: "#667eea" }}
-                    >
-                      View Project
-                    </a>
-                  </p>
-                )}
-                {project.technologies && project.technologies.length > 0 && (
-                  <SkillList>
-                    {project.technologies.map((tech, techIndex) => (
-                      <SkillTag key={techIndex}>{tech}</SkillTag>
-                    ))}
-                  </SkillList>
-                )}
+                <FieldEditor>
+                  <FieldLabel>Project Name</FieldLabel>
+                  <FieldInput
+                    value={project.name}
+                    onChange={(e) =>
+                      updateField(
+                        `content.projects.${index}.name`,
+                        e.target.value
+                      )
+                    }
+                  />
+                </FieldEditor>
+                <FieldEditor>
+                  <FieldLabel>Description</FieldLabel>
+                  <FieldTextarea
+                    value={project.description}
+                    onChange={(e) =>
+                      updateField(
+                        `content.projects.${index}.description`,
+                        e.target.value
+                      )
+                    }
+                  />
+                </FieldEditor>
+                <FieldEditor>
+                  <FieldLabel>Live URL</FieldLabel>
+                  <FieldInput
+                    value={project.live || ""}
+                    onChange={(e) =>
+                      updateField(
+                        `content.projects.${index}.live`,
+                        e.target.value
+                      )
+                    }
+                  />
+                </FieldEditor>
+                <FieldEditor>
+                  <FieldLabel>Code URL</FieldLabel>
+                  <FieldInput
+                    value={project.code || ""}
+                    onChange={(e) =>
+                      updateField(
+                        `content.projects.${index}.code`,
+                        e.target.value
+                      )
+                    }
+                  />
+                </FieldEditor>
+                <RemoveButton
+                  onClick={() => removeArrayItem("content.projects", index)}
+                >
+                  Remove Project
+                </RemoveButton>
               </div>
             ))}
+            <AddButton
+              onClick={() =>
+                addArrayItem("content.projects", {
+                  name: "New Project",
+                  description: "Project description...",
+                  live: "",
+                  code: "",
+                })
+              }
+            >
+              + Add Project
+            </AddButton>
           </ControlPanel>
         )}
+      </>
+    );
+  };
 
-        {sections.education && content.education.length > 0 && (
-          <ControlPanel>
-            <ControlTitle>🎓 Education</ControlTitle>
+  // Common resume content component
+  const ResumeContent = () => (
+    <>
+      {sections.summary && (
+        <Section>
+          <SectionTitle>Professional Summary</SectionTitle>
+          <p>{content.summary}</p>
+        </Section>
+      )}
+
+      {sections.experience && content.experience.length > 0 && (
+        <Section>
+          <SectionTitle>Work Experience</SectionTitle>
+          <ExperienceList>
+            {content.experience.map((exp, index) => (
+              <ExperienceItem key={index}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "start",
+                    marginBottom: "8px",
+                  }}
+                >
+                  <div>
+                    <h4 style={{ margin: "0 0 5px 0", color: "#2d3748" }}>
+                      {exp.title}
+                    </h4>
+                    <p
+                      style={{
+                        margin: "0 0 5px 0",
+                        color: "#667eea",
+                        fontWeight: "500",
+                      }}
+                    >
+                      {exp.company}
+                    </p>
+                  </div>
+                  <span style={{ color: "#718096", fontSize: "0.9rem" }}>
+                    {exp.duration}
+                  </span>
+                </div>
+                <p style={{ color: "#4a5568", lineHeight: "1.6", margin: 0 }}>
+                  {exp.description}
+                </p>
+              </ExperienceItem>
+            ))}
+          </ExperienceList>
+        </Section>
+      )}
+
+      {sections.skills && Object.keys(content.skills).length > 0 && (
+        <Section>
+          <SectionTitle>Skills</SectionTitle>
+          <SkillsGrid>
+            {Object.entries(content.skills).map(([category, skillList]) => (
+              <SkillCategory key={category}>
+                <h4 style={{ margin: "0 0 10px 0", color: "#2d3748" }}>
+                  {category}
+                </h4>
+                <SkillList>
+                  {skillList.map((skill, index) => (
+                    <SkillTag key={index}>{skill}</SkillTag>
+                  ))}
+                </SkillList>
+              </SkillCategory>
+            ))}
+          </SkillsGrid>
+        </Section>
+      )}
+
+      {sections.education && content.education.length > 0 && (
+        <Section>
+          <SectionTitle>Education</SectionTitle>
+          <EducationList>
             {content.education.map((edu, index) => (
-              <div
-                key={edu.id}
-                style={{
-                  marginBottom: "15px",
-                  padding: "12px",
-                  background: "#f8fafc",
-                  borderRadius: "6px",
-                }}
-              >
-                <h4 style={{ color: "#2d3748", margin: "0 0 5px 0" }}>
+              <div key={index} style={{ marginBottom: "15px" }}>
+                <h4 style={{ margin: "0 0 5px 0", color: "#2d3748" }}>
                   {edu.institution}
                 </h4>
-                <p style={{ color: "#4a5568", margin: "0 0 5px 0" }}>
+                <p
+                  style={{
+                    margin: "0 0 5px 0",
+                    color: "#4a5568",
+                    fontWeight: "500",
+                  }}
+                >
                   {edu.degree}
                 </p>
                 <p
-                  style={{ color: "#718096", margin: "0", fontSize: "0.9rem" }}
+                  style={{
+                    margin: "0 0 5px 0",
+                    color: "#718096",
+                    fontSize: "0.9rem",
+                  }}
                 >
                   {edu.duration}
                 </p>
-                {edu.grade && (
+                {edu.details && (
                   <p
                     style={{
-                      color: "#718096",
-                      margin: "5px 0 0 0",
+                      margin: "0",
+                      color: "#4a5568",
                       fontSize: "0.9rem",
                     }}
                   >
-                    Grade: {edu.grade}
+                    {edu.details}
                   </p>
                 )}
               </div>
             ))}
-          </ControlPanel>
-        )}
+          </EducationList>
+        </Section>
+      )}
 
-        <div
-          style={{
-            display: "flex",
-            gap: "10px",
-            flexWrap: "wrap",
-            marginTop: "auto",
-          }}
-        >
-          <Button onClick={() => setIsEditing(!isEditing)}>
-            {isEditing ? "👁️ Preview Mode" : "✏️ Edit Mode"}
-          </Button>
-          {isEditing && (
-            <Button
-              onClick={handleSave}
-              style={{
-                background: "linear-gradient(135deg, #48bb78, #38a169)",
-              }}
-            >
-              💾 Save Resume
-            </Button>
-          )}
-          <Button onClick={handleReset} variant="secondary">
-            🔄 New Search
-          </Button>
-        </div>
-      </>
-    );
+      {sections.projects && content.projects.length > 0 && (
+        <Section>
+          <SectionTitle>Projects</SectionTitle>
+          <ExperienceList>
+            {content.projects.map((project, index) => (
+              <ExperienceItem key={index}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "start",
+                    marginBottom: "8px",
+                  }}
+                >
+                  <div>
+                    <h4 style={{ margin: "0 0 5px 0", color: "#2d3748" }}>
+                      {project.name}
+                    </h4>
+                    {project.live && (
+                      <a
+                        href={project.live}
+                        style={{
+                          color: "#667eea",
+                          textDecoration: "none",
+                          marginRight: "10px",
+                        }}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Live Demo
+                      </a>
+                    )}
+                    {project.code && (
+                      <a
+                        href={project.code}
+                        style={{
+                          color: "#667eea",
+                          textDecoration: "none",
+                        }}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Source Code
+                      </a>
+                    )}
+                  </div>
+                </div>
+                <p style={{ color: "#4a5568", lineHeight: "1.6", margin: 0 }}>
+                  {project.description}
+                </p>
+              </ExperienceItem>
+            ))}
+          </ExperienceList>
+        </Section>
+      )}
+    </>
+  );
+
+  // Render the selected resume template
+  const renderResume = () => {
+    switch (activeTemplate) {
+      case "professional":
+        return (
+          <ProfessionalResume>
+            <ProfessionalHeader>
+              <ProfessionalName>{personal_info.name}</ProfessionalName>
+              <ProfessionalTitle>{personal_info.title}</ProfessionalTitle>
+              <ModernContact style={{ justifyContent: "center", gap: "30px" }}>
+                <div>{personal_info.email}</div>
+                <div>{personal_info.phone}</div>
+                <div>{personal_info.location}</div>
+              </ModernContact>
+            </ProfessionalHeader>
+            <ResumeContent />
+          </ProfessionalResume>
+        );
+
+      case "creative":
+        return (
+          <CreativeResume>
+            <CreativeHeader>
+              <div>
+                <CreativeName>{personal_info.name}</CreativeName>
+                <CreativeTitle>{personal_info.title}</CreativeTitle>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: "0.9rem", color: "#4a5568" }}>
+                  {personal_info.email}
+                </div>
+                <div style={{ fontSize: "0.9rem", color: "#4a5568" }}>
+                  {personal_info.phone}
+                </div>
+                <div style={{ fontSize: "0.9rem", color: "#4a5568" }}>
+                  {personal_info.location}
+                </div>
+              </div>
+            </CreativeHeader>
+            <ResumeContent />
+          </CreativeResume>
+        );
+
+      default: // modern
+        return (
+          <ModernResume>
+            <ModernHeader>
+              <ModernName>{personal_info.name}</ModernName>
+              <ModernTitle>{personal_info.title}</ModernTitle>
+              <ModernContact>
+                <div>{personal_info.email}</div>
+                <div>{personal_info.phone}</div>
+                <div>{personal_info.location}</div>
+                {personal_info.website && <div>{personal_info.website}</div>}
+              </ModernContact>
+              <ModernSocial>
+                {personal_info.linkedin && (
+                  <a
+                    href={personal_info.linkedin}
+                    style={{ color: "white", textDecoration: "none" }}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    LinkedIn
+                  </a>
+                )}
+                {personal_info.github && (
+                  <a
+                    href={personal_info.github}
+                    style={{ color: "white", textDecoration: "none" }}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    GitHub
+                  </a>
+                )}
+              </ModernSocial>
+            </ModernHeader>
+            <ResumeContent />
+          </ModernResume>
+        );
+    }
   };
 
   return (
@@ -917,10 +1658,10 @@ const FindUser = () => {
       <LeftPanel isExpanded={isExpanded}>
         {!isExpanded ? (
           <>
-            <Title>GitHub Resume Builder</Title>
-            <p style={{ color: "#718096", marginBottom: "25px" }}>
-              Enter a GitHub username to create a professional resume
-            </p>
+            <Title>Find GitHub User</Title>
+            <Subtitle>
+              Enter a GitHub username to generate a professional resume
+            </Subtitle>
 
             <Input
               type="text"
@@ -935,11 +1676,34 @@ const FindUser = () => {
               onClick={handleNext}
               disabled={!username.trim() || isLoading}
             >
-              {isLoading ? "Generating..." : "Generate Resume"}
+              {isLoading ? "Searching..." : "Find User"}
             </Button>
           </>
         ) : (
-          renderEditorControls()
+          <>
+            {renderEditorControls()}
+
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                flexWrap: "wrap",
+                marginTop: "20px",
+              }}
+            >
+              <Button onClick={() => setIsEditing(!isEditing)}>
+                {isEditing ? "Preview Mode" : "Edit Mode"}
+              </Button>
+              {isEditing && (
+                <Button onClick={handleSave} primary>
+                  Save Resume
+                </Button>
+              )}
+              <Button onClick={handleReset} variant="secondary">
+                New Search
+              </Button>
+            </div>
+          </>
         )}
       </LeftPanel>
 
@@ -949,253 +1713,37 @@ const FindUser = () => {
             <ResumeActions>
               {!isEditing ? (
                 <ActionButton onClick={() => setIsEditing(true)}>
-                  ✏️ Edit Resume
+                  Edit Resume
                 </ActionButton>
               ) : (
                 <ActionButton primary onClick={handleSave}>
-                  💾 Save Changes
+                  Save Changes
                 </ActionButton>
               )}
             </ResumeActions>
 
-            <ModernResume>
-              <ModernHeader>
-                <ModernName>{personal_info.name || "GitHub User"}</ModernName>
-                <ModernTitle>{personal_info.title}</ModernTitle>
-                <ContactInfo>
-                  {personal_info.email &&
-                    personal_info.email !== "Not provided" && (
-                      <div>📧 {personal_info.email}</div>
-                    )}
-                  {personal_info.phone &&
-                    personal_info.phone !== "Not provided" && (
-                      <div>📱 {personal_info.phone}</div>
-                    )}
-                  {personal_info.location &&
-                    personal_info.location !== "Not provided" && (
-                      <div>📍 {personal_info.location}</div>
-                    )}
-                  {personal_info.website && (
-                    <div>🌐 {personal_info.website}</div>
-                  )}
-                  {personal_info.linkedin && (
-                    <div>💼 {personal_info.linkedin}</div>
-                  )}
-                  {personal_info.github && (
-                    <div>
-                      🐙{" "}
-                      <a
-                        href={personal_info.github}
-                        style={{ color: "white" }}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        GitHub
-                      </a>
-                    </div>
-                  )}
-                </ContactInfo>
-              </ModernHeader>
-
-              {/* Summary Section */}
-              {sections.summary && content.summary && (
-                <Section>
-                  <SectionTitle>Professional Summary</SectionTitle>
-                  <p style={{ lineHeight: "1.6", color: "#4a5568" }}>
-                    {content.summary}
-                  </p>
-                </Section>
-              )}
-
-              {/* Skills Section */}
-              {sections.skills && Object.keys(content.skills).length > 0 && (
-                <Section>
-                  <SectionTitle>Skills & Technologies</SectionTitle>
-                  <SkillsGrid>
-                    {Object.entries(content.skills).map(
-                      ([category, skillList]) => (
-                        <SkillCategory key={category}>
-                          <h4
-                            style={{
-                              margin: "0 0 12px 0",
-                              color: "#2d3748",
-                              fontSize: "1rem",
-                            }}
-                          >
-                            {category}
-                          </h4>
-                          <SkillList>
-                            {skillList.map((skill, index) => (
-                              <SkillTag key={index}>{skill}</SkillTag>
-                            ))}
-                          </SkillList>
-                        </SkillCategory>
-                      )
-                    )}
-                  </SkillsGrid>
-                </Section>
-              )}
-
-              {/* Projects Section */}
-              {sections.projects && content.projects.length > 0 && (
-                <Section>
-                  <SectionTitle>Projects</SectionTitle>
-                  <ExperienceList>
-                    {content.projects.map((project) => (
-                      <ExperienceItem key={project.id}>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "flex-start",
-                            marginBottom: "8px",
-                          }}
-                        >
-                          <div style={{ flex: 1 }}>
-                            <h4
-                              style={{
-                                margin: "0 0 4px 0",
-                                color: "#2d3748",
-                                fontSize: "1.1rem",
-                              }}
-                            >
-                              {project.name}
-                            </h4>
-                            {project.link && (
-                              <p
-                                style={{
-                                  margin: "0 0 4px 0",
-                                  color: "#667eea",
-                                  fontSize: "0.9rem",
-                                }}
-                              >
-                                <a
-                                  href={project.link}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  🔗 View Project
-                                </a>
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <p
-                          style={{
-                            color: "#4a5568",
-                            lineHeight: "1.6",
-                            margin: "0 0 8px 0",
-                          }}
-                        >
-                          {project.description}
-                        </p>
-                        {project.technologies &&
-                          project.technologies.length > 0 && (
-                            <SkillList>
-                              {project.technologies.map((tech, techIndex) => (
-                                <SkillTag key={techIndex}>{tech}</SkillTag>
-                              ))}
-                            </SkillList>
-                          )}
-                      </ExperienceItem>
-                    ))}
-                  </ExperienceList>
-                </Section>
-              )}
-
-              {/* Education Section */}
-              {sections.education && content.education.length > 0 && (
-                <Section>
-                  <SectionTitle>Education</SectionTitle>
-                  <ExperienceList>
-                    {content.education.map((edu) => (
-                      <ExperienceItem key={edu.id}>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "flex-start",
-                          }}
-                        >
-                          <div style={{ flex: 1 }}>
-                            <h4
-                              style={{
-                                margin: "0 0 4px 0",
-                                color: "#2d3748",
-                                fontSize: "1.1rem",
-                              }}
-                            >
-                              {edu.institution}
-                            </h4>
-                            <p
-                              style={{ margin: "0 0 4px 0", color: "#4a5568" }}
-                            >
-                              {edu.degree}
-                            </p>
-                            <p
-                              style={{
-                                margin: "0",
-                                color: "#718096",
-                                fontSize: "0.9rem",
-                              }}
-                            >
-                              {edu.duration}
-                            </p>
-                            {edu.grade && (
-                              <p
-                                style={{
-                                  margin: "5px 0 0 0",
-                                  color: "#718096",
-                                  fontSize: "0.9rem",
-                                }}
-                              >
-                                Grade: {edu.grade}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </ExperienceItem>
-                    ))}
-                  </ExperienceList>
-                </Section>
-              )}
-            </ModernResume>
+            {renderResume()}
           </ResumeContainer>
-        ) : isLoading ? (
+        ) : showRightPanel ? (
           <LoadingContainer>
             <GitHubIcon>
               <svg
-                height="60"
+                height="50"
                 viewBox="0 0 16 16"
-                width="60"
+                width="50"
                 fill="currentColor"
               >
                 <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
               </svg>
             </GitHubIcon>
             <Spinner />
-            <p
-              style={{
-                color: "white",
-                fontSize: "1.2rem",
-                fontWeight: "500",
-                textAlign: "center",
-              }}
-            >
-              Building resume for <strong>@{username}</strong>
-            </p>
-            <p
-              style={{
-                color: "rgba(255,255,255,0.8)",
-                fontSize: "0.9rem",
-                marginTop: "8px",
-              }}
-            >
-              Analyzing GitHub profile and skills...
-            </p>
+            <LoadingText>
+              Searching for <strong>@{username}</strong>
+              <LoadingDots />
+            </LoadingText>
           </LoadingContainer>
         ) : (
-          <div style={{ textAlign: "center", color: "white" }}>
+          <UserInfo>
             <GitHubIcon>
               <svg
                 height="80"
@@ -1206,19 +1754,13 @@ const FindUser = () => {
                 <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
               </svg>
             </GitHubIcon>
-            <h3
-              style={{
-                margin: "20px 0 10px 0",
-                fontSize: "1.5rem",
-                fontWeight: "600",
-              }}
-            >
-              GitHub Resume Builder
+            <h3 style={{ margin: "20px 0 10px 0", fontSize: "1.5rem" }}>
+              Ready to Explore
             </h3>
-            <p style={{ opacity: 0.9, fontSize: "1rem" }}>
-              Enter a GitHub username to create a professional resume
+            <p style={{ opacity: 0.8, fontSize: "1rem" }}>
+              Enter a GitHub username to get started
             </p>
-          </div>
+          </UserInfo>
         )}
       </RightPanel>
     </Container>
