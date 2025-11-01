@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
 
 // Animations
@@ -654,6 +654,8 @@ const FindUser = () => {
   const [showResume, setShowResume] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [activeTemplate, setActiveTemplate] = useState("modern");
+
+  // Resume data state with all customizable fields
   const [resumeData, setResumeData] = useState({
     personal_info: {
       name: "Sarthak GC",
@@ -735,32 +737,16 @@ const FindUser = () => {
     },
   });
 
-  const fetchUser = async () => {
-    try {
-      const res = await fetch(`http://localhost:3000/analyze?u=${username}`);
-
-      if (!res.ok) {
-        throw new Error(`HTTP error! Status: ${res.status}`);
-      }
-
-      const data = await res.json(); // Assuming the response is in JSON format
-
-      setResumeData(data.response);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-    }
-  };
-
-  const handleNext = async () => {
+  const handleNext = () => {
     if (username.trim()) {
       setIsLoading(true);
       setShowRightPanel(true);
       setIsExpanded(true);
-      await fetchUser();
-      // setTimeout(() => {
-      //   setIsLoading(false);
-      //   setShowResume(true);
-      // }, 2000);
+
+      setTimeout(() => {
+        setIsLoading(false);
+        setShowResume(true);
+      }, 2000);
     }
   };
 
@@ -879,10 +865,6 @@ const FindUser = () => {
   };
 
   const { personal_info, sections, content, styling } = resumeData;
-
-  if (!resumeData) {
-    return <>Loading....</>;
-  }
 
   // Render editing controls for the left panel
   const renderEditorControls = () => {
