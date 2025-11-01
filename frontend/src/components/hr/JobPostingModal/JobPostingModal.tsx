@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { X } from "lucide-react";
 import {
   ModalOverlay,
   ModalContent,
@@ -11,31 +11,70 @@ import {
   Label,
   Input,
   TextArea,
-  Select,
-  SkillInput,
-  AddSkillButton,
   ModalActions,
-  Button
-} from './JobPostingModal.styles';
+  Button,
+} from "./JobPostingModal.styles";
 
 interface JobPostingModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const JobPostingModal: React.FC<JobPostingModalProps> = ({ isOpen, onClose }) => {
-  const [skills, setSkills] = useState<string[]>([]);
-  const [newSkill, setNewSkill] = useState('');
+const JobPostingModal: React.FC<JobPostingModalProps> = ({
+  isOpen,
+  onClose,
+}) => {
+  const hr = JSON.parse(localStorage.getItem("hr"));
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    salary: "",
+  });
 
-  const addSkill = () => {
-    if (newSkill.trim() && !skills.includes(newSkill.trim())) {
-      setSkills([...skills, newSkill.trim()]);
-      setNewSkill('');
-    }
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const removeSkill = (skillToRemove: string) => {
-    setSkills(skills.filter(skill => skill !== skillToRemove));
+  useEffect(() => {
+    const fetchJobs = async () => {
+      await fetch("http://localhost:3000/jobs").then((res) => {
+        console.log(res);
+      });
+    };
+    fetchJobs();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const response = await fetch(`http://localhost:3000/job`, {
+        method: "POST",
+        headers: {
+          Authorization: hr.token, // Fixed typo
+          "Content-Type": "application/json", // Added content type
+        },
+        body: JSON.stringify(formData), // Fixed typo and added JSON stringify
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("Job posted successfully:", result);
+
+      onClose();
+    } catch (error) {
+      console.error("Error posting job:", error);
+      // Handle error (show error message to user)
+    }
   };
 
   if (!isOpen) return null;
@@ -50,101 +89,49 @@ const JobPostingModal: React.FC<JobPostingModalProps> = ({ isOpen, onClose }) =>
           </CloseButton>
         </ModalHeader>
 
-        <Form>
+        <Form onSubmit={handleSubmit}>
           <FormGroup>
             <Label>Job Title</Label>
-            <Input type="text" placeholder="e.g., Senior Frontend Developer" />
+            <Input
+              type="text"
+              name="title"
+              value={formData.title}
+              onChange={handleInputChange}
+              placeholder="e.g., Senior Frontend Developer"
+            />
           </FormGroup>
 
           <FormGroup>
-            <Label>Company</Label>
-            <Input type="text" placeholder="Your company name" />
+            <Label>Description</Label>
+            <TextArea
+              name="description"
+              value={formData.description}
+              onChange={handleInputChange}
+              rows={6}
+              placeholder="Describe the job responsibilities, requirements, and what makes your company great..."
+            />
           </FormGroup>
 
           <FormGroup>
-            <Label>Location</Label>
-            <Input type="text" placeholder="e.g., Remote, San Francisco, CA" />
+            <Label>Salary</Label>
+            <Input
+              type="text"
+              name="salary"
+              value={formData.salary}
+              onChange={handleInputChange}
+              placeholder="e.g., $80,000 - $120,000 per year"
+            />
           </FormGroup>
 
-          <FormGroup>
-            <Label>Job Type</Label>
-            <Select>
-              <option value="full-time">Full Time</option>
-              <option value="part-time">Part Time</option>
-              <option value="contract">Contract</option>
-              <option value="remote">Remote</option>
-            </Select>
-          </FormGroup>
-
-          <FormGroup>
-            <Label>Salary Range</Label>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <Input type="number" placeholder="Min salary" />
-              <Input type="number" placeholder="Max salary" />
-            </div>
-          </FormGroup>
-
-          <FormGroup>
-            <Label>Required Skills</Label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
-              {skills.map(skill => (
-                <span
-                  key={skill}
-                  style={{
-                    background: '#e0e7ff',
-                    color: '#3730a3',
-                    padding: '4px 12px',
-                    borderRadius: '16px',
-                    fontSize: '14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  {skill}
-                  <button
-                    onClick={() => removeSkill(skill)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '16px',
-                      lineHeight: 1
-                    }}
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
-            <SkillInput>
-              <Input
-                type="text"
-                value={newSkill}
-                onChange={(e) => setNewSkill(e.target.value)}
-                placeholder="Add a required skill"
-                onKeyPress={(e) => e.key === 'Enter' && addSkill()}
-              />
-              <AddSkillButton onClick={addSkill}>
-                Add
-              </AddSkillButton>
-            </SkillInput>
-          </FormGroup>
-
-          <FormGroup>
-            <Label>Job Description</Label>
-            <TextArea rows={6} placeholder="Describe the job responsibilities, requirements, and what makes your company great..." />
-          </FormGroup>
+          <ModalActions>
+            <Button variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit">
+              Post Job
+            </Button>
+          </ModalActions>
         </Form>
-
-        <ModalActions>
-          <Button variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button variant="primary">
-            Post Job
-          </Button>
-        </ModalActions>
       </ModalContent>
     </ModalOverlay>
   );
