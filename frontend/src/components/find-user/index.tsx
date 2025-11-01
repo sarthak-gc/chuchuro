@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
 
 // Animations
@@ -738,14 +738,14 @@ const FindUser = () => {
   // Resume data state with proper initial structure
   const [resumeData, setResumeData] = useState({
     personal_info: {
-      name: "Sarthak GC",
+      name: "",
       title: "Full Stack Developer",
-      email: "sarthakgc.np@gmail.com",
-      phone: "+977 9841234567",
-      location: "Kathmandu, Nepal",
-      website: "https://sarthakgc.com.np",
-      linkedin: "https://linkedin.com/in/sarthak-gc",
-      github: "https://github.com/sarthak-gc",
+      email: "",
+      phone: "",
+      location: "",
+      website: "",
+      linkedin: "",
+      github: "",
     },
     sections: {
       summary: true,
