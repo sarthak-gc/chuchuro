@@ -21,6 +21,7 @@ interface JobCardProps {
 }
 
 const JobCard: React.FC<JobCardProps> = ({ job, onSwipe }) => {
+  const user = JSON.parse(localStorage.getItem("user"));
   return (
     <motion.div
       drag="x"
@@ -82,7 +83,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onSwipe }) => {
             onClick={async () => {
               try {
                 const response = await fetch(
-                  `http://localhost:3000/apply/jobs/${job.id}`,
+                  `http://localhost:3000/apply/jobs/${job.id}/user/${user.response.id}`,
                   {
                     method: "POST",
                     headers: {
