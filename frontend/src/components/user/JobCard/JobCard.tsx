@@ -21,6 +21,7 @@ interface JobCardProps {
 }
 
 const JobCard: React.FC<JobCardProps> = ({ job, onSwipe }) => {
+  const user = JSON.parse(localStorage.getItem("user"));
   return (
     <motion.div
       drag="x"
@@ -77,7 +78,34 @@ const JobCard: React.FC<JobCardProps> = ({ job, onSwipe }) => {
           <ActionButton variant="reject" onClick={() => onSwipe("left")}>
             ✕
           </ActionButton>
-          <ActionButton variant="accept" onClick={() => onSwipe("right")}>
+          <ActionButton
+            variant="accept"
+            onClick={async () => {
+              try {
+                const response = await fetch(
+                  `http://localhost:3000/apply/jobs/${job.id}/user/${user.response.id}`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                  }
+                );
+
+                if (!response.ok) {
+                  throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log("Application successful:", result);
+
+                alert("Application submitted successfully!");
+              } catch (error) {
+                console.error("Error applying for job:", error);
+                alert("Failed to apply for job. Please try again.");
+              }
+            }}
+          >
             ✓
           </ActionButton>
         </CardActions>

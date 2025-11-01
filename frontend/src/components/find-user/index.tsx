@@ -618,7 +618,7 @@ const UserInfo = styled.div`
   text-align: center;
   color: white;
 `;
-// Add this styled component after the existing Button component
+
 const NextButton = styled.button`
   position: absolute;
   top: 20px;
@@ -654,6 +654,89 @@ const FindUser = () => {
   const [showResume, setShowResume] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [activeTemplate, setActiveTemplate] = useState("modern");
+
+  const [simulatedApiResponse, setSimulatedApiResponse] = useState<any>({
+    response: {
+      skills: {
+        Frontend: [
+          "React.js",
+          "Next.js",
+          "Redux.js",
+          "Redux Toolkit",
+          "TanStack Query (React Query)",
+          "Material-UI (MUI)",
+          "Tailwind CSS",
+          "CSS-in-JS (Styled Components, Emotion)",
+          "React Router",
+          "Formik",
+          "Slate.js",
+          "Framer Motion",
+        ],
+        Backend: [
+          "Node.js",
+          "Express.js",
+          "Socket.IO",
+          "JWT",
+          "REST APIs",
+          "WebSockets",
+          "Nodemailer",
+          "Zod",
+          "Multer",
+        ],
+        Databases: ["MongoDB", "Mongoose", "Redis"],
+        Languages: ["TypeScript"],
+        Testing: [
+          "Jest",
+          "Mocha",
+          "Chai",
+          "Sinon.js",
+          "Supertest",
+          "Playwright",
+          "WebdriverIO",
+          "Vitest",
+        ],
+        "DevOps & Tools": [
+          "Git",
+          "ESLint",
+          "Prettier",
+          "Webpack",
+          "Vite",
+          "Rollup",
+          "Babel",
+          "Husky",
+          "AWS SDK",
+          "esbuild",
+        ],
+      },
+      details: {
+        personal_info: {
+          firstName: "Achyut",
+          lastName: "Thapa",
+          contact: null,
+          email: null,
+          location: null,
+          socials: {
+            LinkedIn: null,
+            GitHub: "https://github.com/achyutthapa7",
+          },
+          personalWebsite: null,
+        },
+        education: [],
+        projects: [
+          {
+            name: "twinspark",
+            description:
+              "A project focused on the MERN stack and related technologies.",
+            live: null,
+            code: "https://github.com/achyutthapa7/twinspark",
+          },
+        ],
+      },
+    },
+    id: "b0822fd3-0c07-4db1-9f8d-1f8d081a20c9",
+  });
+
+  // Resume data state with new format
   const [resumeData, setResumeData] = useState({
     personal_info: {
       name: "Sarthak GC",
@@ -674,58 +757,12 @@ const FindUser = () => {
       certifications: false,
     },
     content: {
-      summary:
-        "Experienced full-stack developer with expertise in modern web technologies including React, Node.js, and PostgreSQL. Passionate about creating efficient and scalable solutions.",
-      experience: [
-        {
-          title: "Full Stack Developer",
-          company: "Tech Solutions Inc.",
-          duration: "2022-Present",
-          description:
-            "Developed and maintained web applications using React, Node.js, and PostgreSQL. Implemented CI/CD pipelines and improved application performance by 40%.",
-        },
-        {
-          title: "Frontend Developer",
-          company: "Digital Innovations",
-          duration: "2020-2022",
-          description:
-            "Built responsive user interfaces with React and TypeScript. Collaborated with design team to implement pixel-perfect designs.",
-        },
-      ],
-      education: [
-        {
-          institution: "Patan Multiple Campus",
-          degree: "Bachelor of Computer Application",
-          duration: "2023-Present",
-          details: "Focus on Software Engineering and Web Technologies",
-        },
-      ],
-      skills: {
-        "Frontend Technologies": [
-          "React",
-          "TypeScript",
-          "Tailwind CSS",
-          "Next.js",
-        ],
-        "Backend Technologies": ["Node.js", "Express", "PostgreSQL", "MongoDB"],
-        "Tools & Platforms": ["Git", "Docker", "AWS", "Jenkins"],
-      },
-      projects: [
-        {
-          name: "Real-time Chat Application",
-          description:
-            "A scalable chat application built with Socket.io and React",
-          technologies: ["React", "Node.js", "Socket.io", "MongoDB"],
-          link: "https://github.com/sarthak-gc/chat-app",
-        },
-      ],
-      certifications: [
-        {
-          name: "AWS Certified Developer",
-          issuer: "Amazon Web Services",
-          date: "2023",
-        },
-      ],
+      summary: "",
+      experience: [],
+      education: [],
+      skills: {},
+      projects: [],
+      certifications: [],
     },
     styling: {
       primaryColor: "#667eea",
@@ -736,28 +773,73 @@ const FindUser = () => {
   });
 
   const fetchUser = async () => {
-    try {
-      const res = await fetch(`http://localhost:3000/analyze?u=${username}`);
+    await fetch(`http://localhost:3000/analyze?u=${username}`).then((res) => {
+      setSimulatedApiResponse(res);
+    });
+  };
+  // Function to transform API response to our resume format
+  const transformApiDataToResume = (apiData) => {
+    const { personal_info, education, projects } = apiData.details;
+    const skills = apiData.skills;
 
-      if (!res.ok) {
-        throw new Error(`HTTP error! Status: ${res.status}`);
-      }
-
-      const data = await res.json(); // Assuming the response is in JSON format
-
-      setResumeData(data.response);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-    }
+    return {
+      personal_info: {
+        name:
+          `${personal_info.firstName || ""} ${
+            personal_info.lastName || ""
+          }`.trim() || "GitHub User",
+        title: "Full Stack Developer",
+        email: personal_info.email || "email@example.com",
+        phone: personal_info.contact || "+977 9841234567",
+        location: personal_info.location || "Location not specified",
+        website: personal_info.personalWebsite || "",
+        linkedin: personal_info.socials?.LinkedIn || "",
+        github: personal_info.socials?.GitHub || "",
+      },
+      sections: {
+        summary: true,
+        experience: true,
+        education: education && education.length > 0,
+        skills: Object.keys(skills).length > 0,
+        projects: projects && projects.length > 0,
+        certifications: false,
+      },
+      content: {
+        summary:
+          "Experienced developer with expertise in modern web technologies. Passionate about creating efficient and scalable solutions.",
+        experience: [
+          {
+            title: "Full Stack Developer",
+            company: "Tech Solutions Inc.",
+            duration: "2022-Present",
+            description:
+              "Developed and maintained web applications using modern technologies.",
+          },
+        ],
+        education: education || [],
+        skills: skills,
+        projects: projects || [],
+        certifications: [],
+      },
+    };
   };
 
-  const handleNext = async () => {
+  const handleNext = () => {
     if (username.trim()) {
       setIsLoading(true);
       setShowRightPanel(true);
       setIsExpanded(true);
-      await fetchUser();
+      fetchUser();
+      // // Simulate API call
       // setTimeout(() => {
+      //   // Transform the simulated API response to our resume format
+      //   const transformedData = transformApiDataToResume(
+      //     simulatedApiResponse.response
+      //   );
+      //   setResumeData((prev) => ({
+      //     ...prev,
+      //     ...transformedData,
+      //   }));
       //   setIsLoading(false);
       //   setShowResume(true);
       // }, 2000);
@@ -878,11 +960,35 @@ const FindUser = () => {
     }));
   };
 
-  const { personal_info, sections, content, styling } = resumeData;
+  const addSkillCategory = () => {
+    const newCategory = "New Category";
+    setResumeData((prev) => ({
+      ...prev,
+      content: {
+        ...prev.content,
+        skills: {
+          ...prev.content.skills,
+          [newCategory]: ["New Skill"],
+        },
+      },
+    }));
+  };
 
-  if (!resumeData) {
-    return <>Loading....</>;
-  }
+  const removeSkillCategory = (category) => {
+    setResumeData((prev) => {
+      const newSkills = { ...prev.content.skills };
+      delete newSkills[category];
+      return {
+        ...prev,
+        content: {
+          ...prev.content,
+          skills: newSkills,
+        },
+      };
+    });
+  };
+
+  const { personal_info, sections, content, styling } = resumeData;
 
   // Render editing controls for the left panel
   const renderEditorControls = () => {
@@ -1054,18 +1160,33 @@ const FindUser = () => {
             <ControlTitle>🛠️ Skills</ControlTitle>
             {Object.entries(content.skills).map(([category, skills]) => (
               <div key={category} style={{ marginBottom: "20px" }}>
-                <FieldEditor>
-                  <FieldLabel>Category</FieldLabel>
-                  <FieldInput
-                    value={category}
-                    onChange={(e) => {
-                      const newSkills = { ...content.skills };
-                      delete newSkills[category];
-                      newSkills[e.target.value] = skills;
-                      updateField("content.skills", newSkills);
-                    }}
-                  />
-                </FieldEditor>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "10px",
+                  }}
+                >
+                  <FieldEditor style={{ flex: 1, marginRight: "10px" }}>
+                    <FieldLabel>Category</FieldLabel>
+                    <FieldInput
+                      value={category}
+                      onChange={(e) => {
+                        const newSkills = { ...content.skills };
+                        delete newSkills[category];
+                        newSkills[e.target.value] = skills;
+                        updateField("content.skills", newSkills);
+                      }}
+                    />
+                  </FieldEditor>
+                  <RemoveButton
+                    onClick={() => removeSkillCategory(category)}
+                    style={{ marginTop: "25px" }}
+                  >
+                    Remove Category
+                  </RemoveButton>
+                </div>
                 <FieldLabel>Skills</FieldLabel>
                 <div
                   style={{
@@ -1102,17 +1223,7 @@ const FindUser = () => {
                 </AddButton>
               </div>
             ))}
-            <AddButton
-              onClick={() => {
-                const newCategory = "New Category";
-                updateField("content.skills", {
-                  ...content.skills,
-                  [newCategory]: ["New Skill"],
-                });
-              }}
-            >
-              + Add New Category
-            </AddButton>
+            <AddButton onClick={addSkillCategory}>+ Add New Category</AddButton>
           </ControlPanel>
         )}
 
@@ -1198,6 +1309,89 @@ const FindUser = () => {
             </AddButton>
           </ControlPanel>
         )}
+
+        {sections.projects && content.projects.length > 0 && (
+          <ControlPanel>
+            <ControlTitle>🚀 Projects</ControlTitle>
+            {content.projects.map((project, index) => (
+              <div
+                key={index}
+                style={{
+                  marginBottom: "20px",
+                  padding: "15px",
+                  background: "#f8fafc",
+                  borderRadius: "8px",
+                }}
+              >
+                <FieldEditor>
+                  <FieldLabel>Project Name</FieldLabel>
+                  <FieldInput
+                    value={project.name}
+                    onChange={(e) =>
+                      updateField(
+                        `content.projects.${index}.name`,
+                        e.target.value
+                      )
+                    }
+                  />
+                </FieldEditor>
+                <FieldEditor>
+                  <FieldLabel>Description</FieldLabel>
+                  <FieldTextarea
+                    value={project.description}
+                    onChange={(e) =>
+                      updateField(
+                        `content.projects.${index}.description`,
+                        e.target.value
+                      )
+                    }
+                  />
+                </FieldEditor>
+                <FieldEditor>
+                  <FieldLabel>Live URL</FieldLabel>
+                  <FieldInput
+                    value={project.live || ""}
+                    onChange={(e) =>
+                      updateField(
+                        `content.projects.${index}.live`,
+                        e.target.value
+                      )
+                    }
+                  />
+                </FieldEditor>
+                <FieldEditor>
+                  <FieldLabel>Code URL</FieldLabel>
+                  <FieldInput
+                    value={project.code || ""}
+                    onChange={(e) =>
+                      updateField(
+                        `content.projects.${index}.code`,
+                        e.target.value
+                      )
+                    }
+                  />
+                </FieldEditor>
+                <RemoveButton
+                  onClick={() => removeArrayItem("content.projects", index)}
+                >
+                  Remove Project
+                </RemoveButton>
+              </div>
+            ))}
+            <AddButton
+              onClick={() =>
+                addArrayItem("content.projects", {
+                  name: "New Project",
+                  description: "Project description...",
+                  live: "",
+                  code: "",
+                })
+              }
+            >
+              + Add Project
+            </AddButton>
+          </ControlPanel>
+        )}
       </>
     );
   };
@@ -1253,7 +1447,7 @@ const FindUser = () => {
         </Section>
       )}
 
-      {sections.skills && (
+      {sections.skills && Object.keys(content.skills).length > 0 && (
         <Section>
           <SectionTitle>Skills</SectionTitle>
           <SkillsGrid>
@@ -1314,6 +1508,62 @@ const FindUser = () => {
               </div>
             ))}
           </EducationList>
+        </Section>
+      )}
+
+      {sections.projects && content.projects.length > 0 && (
+        <Section>
+          <SectionTitle>Projects</SectionTitle>
+          <ExperienceList>
+            {content.projects.map((project, index) => (
+              <ExperienceItem key={index}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "start",
+                    marginBottom: "8px",
+                  }}
+                >
+                  <div>
+                    <h4 style={{ margin: "0 0 5px 0", color: "#2d3748" }}>
+                      {project.name}
+                    </h4>
+                    {project.live && (
+                      <a
+                        href={project.live}
+                        style={{
+                          color: "#667eea",
+                          textDecoration: "none",
+                          marginRight: "10px",
+                        }}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Live Demo
+                      </a>
+                    )}
+                    {project.code && (
+                      <a
+                        href={project.code}
+                        style={{
+                          color: "#667eea",
+                          textDecoration: "none",
+                        }}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Source Code
+                      </a>
+                    )}
+                  </div>
+                </div>
+                <p style={{ color: "#4a5568", lineHeight: "1.6", margin: 0 }}>
+                  {project.description}
+                </p>
+              </ExperienceItem>
+            ))}
+          </ExperienceList>
         </Section>
       )}
     </>
@@ -1379,6 +1629,8 @@ const FindUser = () => {
                   <a
                     href={personal_info.linkedin}
                     style={{ color: "white", textDecoration: "none" }}
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
                     LinkedIn
                   </a>
@@ -1387,6 +1639,8 @@ const FindUser = () => {
                   <a
                     href={personal_info.github}
                     style={{ color: "white", textDecoration: "none" }}
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
                     GitHub
                   </a>

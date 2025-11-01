@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Search, Filter, Download, Eye } from "lucide-react";
 import ResumeModal from "../ResumeModal/ResumeModal";
 import {
@@ -37,6 +37,7 @@ const mockApplicants: any[] = [
 ];
 
 const ApplicantsList: React.FC = () => {
+  const hr = JSON.parse(localStorage.getItem("hr"));
   const [applicants] = useState<any[]>(mockApplicants);
   const [selectedApplicant, setSelectedApplicant] = useState<any | null>(null);
   const [isResumeModalOpen, setIsResumeModalOpen] = useState(false);
@@ -46,6 +47,14 @@ const ApplicantsList: React.FC = () => {
     setIsResumeModalOpen(true);
   };
 
+  const fetchApplicants = async () => {
+    await fetch(`http://localhost:3000/jobs/all/${hr.id}`).then((res) =>
+      console.log(res)
+    );
+  };
+  useEffect(() => {
+    fetchApplicants();
+  }, []);
   return (
     <ListContainer>
       <SearchBar>

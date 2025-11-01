@@ -99,3 +99,5 @@ router.get("/job", getJobs);
 
 router.post("/hr/signup", registerHandler);
 router.post("/hr/login", loginHandler);
+
+router.get("")

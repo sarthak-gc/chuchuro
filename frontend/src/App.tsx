@@ -13,6 +13,8 @@ import HRDashboard from "./components/hr/HRDashboard/HRDashboard";
 import { GlobalStyles } from "./styles/GlobalStyles";
 import Signup from "./components/auth/signup/Signup";
 import FindUser from "./components/find-user";
+import Login from "./components/auth/login";
+import Applied from "./components/user/applied";
 
 function App() {
   return (
@@ -26,11 +28,12 @@ function App() {
               <Route path="/" element={<Navigate to="/jobs" replace />} />
               <Route path="/find-username" element={<FindUser />} />
               <Route path="/sign-up/user" element={<Signup type="user" />} />
-              <Route path="/sign-up/hr" element={<Signup type="hr" />} />
+              <Route path="/login/hr" element={<Login />} />
               <Route path="/profile" element={<UserProfileForm />} />
               <Route path="/jobs" element={<JobFeed />} />
               <Route path="/applications" element={<ApplicationsPage />} />
               <Route path="/hr-dashboard" element={<HRDashboard />} />
+              <Route path="/user/applied" element={<Applied />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
