@@ -1,13 +1,20 @@
 import { Octokit } from "@octokit/rest";
+import bcrypt from "bcrypt";
 import { config } from "dotenv";
 import { Request, Response } from "express";
+import jwt from "jsonwebtoken";
 import puppeteer from "puppeteer";
+import { User } from "../../generated/prisma";
+import { prisma } from "../utils/prisma";
+import {
+  aiMatcherNewJobToOldUsers,
+  aiMatcherNewUserToOldJobs,
+  callAi,
+} from "./ai";
 import { getPersonalDetailsFromGithub } from "./scrape";
 config();
 
 export async function getPublicRepos(url: string, req: Request) {
-  console.log(req.session.access_token);
-  console.log("");
   const octokit = new Octokit({
     auth: req.session.access_token || process.env.GITHUB_TOKEN,
   });
@@ -57,6 +64,179 @@ interface repoDetailsI {
   default_branch: string;
 }
 
+export const matchUserToExistingJobs = async (req: Request, res: Response) => {
+  const userId = req.params.userId;
+
+  const user = await prisma.user.findFirst({
+    where: {
+      userId,
+    },
+  });
+  const jobs = await prisma.job.findMany({
+    select: {
+      description: true,
+    },
+  });
+  const response = await aiMatcherNewUserToOldJobs(user, jobs);
+  res.json({ response });
+};
+
+export const createJob = async (req: Request, res: Response) => {
+  try {
+    const { title, description, salary } = req.body || {};
+
+    // const hrId = req.user?.id || "3274f262-4e0a-461a-8f67-07135baec561";
+    const hrId = req.user?.id || "842bc88d-1dfd-48fc-a99b-d79ed848e2a3";
+
+    if (!hrId) {
+      return res.status(401).json({ msg: "Unauthorized: User not logged in" });
+    }
+
+    const hr = await prisma.hR.findUnique({
+      where: { id: hrId },
+    });
+
+    if (!hr) {
+      return res
+        .status(403)
+        .json({ msg: "Unauthorized: Only HR can post jobs" });
+    }
+
+    if (!title || !description) {
+      return res
+        .status(400)
+        .json({ msg: "Title and description are required" });
+    }
+
+    const newJob = await prisma.job.create({
+      data: {
+        title,
+        description,
+        salary,
+        hr: { connect: { id: hr.id } },
+      },
+    });
+
+    res.status(201).json({
+      msg: "Job created successfully",
+      job: newJob,
+    });
+    setImmediate(async () => {
+      try {
+        const response = await aiMatcherNewJobToOldUsers(newJob);
+        const userIdsWithPercentages = response.userIds;
+        console.log(userIdsWithPercentages);
+        if (userIdsWithPercentages.length == 0) {
+        } else {
+          await prisma.matched.create({
+            data: {
+              jobId: newJob.id,
+              userIds: {
+                create: userIdsWithPercentages
+                  .map((userPercentage: any) => {
+                    return Object.entries(userPercentage).map(
+                      ([userId, matchedPercentage]) => ({
+                        userId: userId as string,
+                        matchedPercentage: matchedPercentage as number,
+                      })
+                    );
+                  })
+                  .flat(),
+              },
+            },
+          });
+        }
+      } catch (error) {
+        console.error("Error during background AI matching process:", error);
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: "Server error", error });
+  }
+};
+export async function registerHandler(req: Request, res: Response) {
+  try {
+    const { email, password } = req.body || {};
+    if (!email.trim() || !password.trim()) {
+      res.json({ msg: "Invalid inputs" });
+      return;
+    }
+
+    // Check if the email is already taken
+    const existingHR = await prisma.hR.findUnique({
+      where: { email },
+    });
+
+    if (existingHR) {
+      return res.status(400).json({ error: "Email is already taken" });
+    }
+
+    // Hash the password before storing
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Generate a unique userId (could be a UUID or another method)
+
+    // Create the HR user in the database
+    const newHR = await prisma.hR.create({
+      data: {
+        email,
+        password: hashedPassword,
+      },
+    });
+
+    // Return the user information (exclude password for security reasons)
+    return res.status(201).json({
+      email: newHR.email,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function loginHandler(req: Request, res: Response) {
+  try {
+    const { email, password } = req.body || {};
+    if (!email.trim() || !password.trim()) {
+      res.json({ msg: "Invalid inputs" });
+      return;
+    }
+
+    // Find the HR user by email
+    const existingHR = await prisma.hR.findUnique({
+      where: { email },
+    });
+
+    if (!existingHR) {
+      return res.status(400).json({ error: "Invalid email or password" });
+    }
+
+    // Compare the provided password with the stored hashed password
+    const isPasswordValid = await bcrypt.compare(password, existingHR.password);
+
+    if (!isPasswordValid) {
+      return res.status(400).json({ error: "Invalid email or password" });
+    }
+
+    // Generate a JWT token (optional, for session management)
+    const token = jwt.sign(
+      { userId: existingHR.id, email: existingHR.email },
+      "your-secret-key", // Use a secure secret key
+      { expiresIn: "1h" }
+    );
+
+    // Return the token and HR info (excluding password)
+    return res.status(200).json({
+      userId: existingHR.id,
+      email: existingHR.email,
+      token, // JWT token for session management
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
 const analyzeGuestProfiles = async (req: Request, res: Response) => {
   try {
     let username = (req.query.u as string) || "";
@@ -101,16 +281,108 @@ const analyzeGuestProfiles = async (req: Request, res: Response) => {
       return;
     }
 
-    console.log("REPS:", repos.length);
-
     const packages = await getPackages(req, repos);
     const response = await callAi(
       { ...moreInfo, ...personal_information },
       packages
     );
-    res.json({
-      response,
+
+    const { skills } = response;
+    const { projects, education, personal_info } = response.details;
+    const {
+      firstName,
+      lastName,
+      contact,
+      email,
+      location,
+      socials,
+      personalWebsite,
+    } = personal_info;
+
+    if (!url) {
+      res.json({
+        msg: "User not found",
+      });
+      return;
+    }
+    const existingUser = await prisma.user.findUnique({
+      where: {
+        githubProfile: url,
+      },
+      include: {
+        socials: true,
+        education: true,
+        skills: {
+          select: {
+            title: true,
+            skills: true,
+          },
+        },
+        experiences: true,
+        projects: true,
+        resume: true,
+      },
     });
+
+    let user: User;
+    if (existingUser) {
+      res.json({
+        user: existingUser,
+      });
+      return;
+    } else {
+      console.log(socials, "HERE!@#");
+      // Create the user if it doesn't exist
+      user = await prisma.user.create({
+        data: {
+          firstName: firstName || "",
+          lastName: lastName || "",
+          email: email || "",
+          contact: contact || "",
+          location: location || "",
+          personalWebsite: personalWebsite || "",
+          githubProfile: url,
+          // socials: {
+          //   create: Object.entries(socials).map(([name, url]) => ({
+          //     websiteName: name || "", // Ensure name is not null
+          //     url: url || "", // Ensure url is not null
+          //   })),
+          // },
+          education: {
+            create: education?.map((edu: any) => {
+              const [startYear, endYear] = edu.duration.split("-");
+
+              const startDate = new Date(`${startYear}-01-01`);
+              let endDate = null;
+
+              if (endYear !== "Present") {
+                endDate = new Date(`${endYear}-01-01`);
+              }
+
+              return {
+                college: edu.institute || "", // Default to empty string if null
+                field: edu.field || "Not specified", // Default to "Not specified"
+                startDate,
+                endDate,
+                description: edu.subject || "", // Default to empty string if null
+              };
+            }),
+          },
+        },
+      });
+
+      await prisma.skill.createMany({
+        data: Object.entries(skills).map(([title, skillArray]) => ({
+          title: title || "", // Ensure title is not null
+          skills: (skillArray as string[]) || [], // Ensure skills array is not null
+          userId: user.userId,
+        })),
+      });
+      res.json({
+        response,
+        user,
+      });
+    }
   } catch (e: any) {
     res.json({
       msg: e.message,
@@ -135,7 +407,6 @@ const getPackages = async (req: Request, repos: repoDetailsI[]) => {
           "Python",
         ];
         if (languages.some((lang) => relevantLanguages.includes(lang))) {
-          console.log("path", packagePath);
           return packagePath;
         }
         return null;
@@ -286,8 +557,6 @@ export async function scrapePersonalWebsite(url: string) {
         .map((a) => a)
         .join(", ");
 
-      console.log("TEXT: ", text);
-      console.log("\nLINKS: ", links);
       return { text, links };
     });
     return innerText;

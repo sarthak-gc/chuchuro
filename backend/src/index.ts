@@ -1,3 +1,4 @@
+import cors from "cors";
 import express, { NextFunction, Request, Response } from "express";
 import session from "express-session";
 import authRouter from "./auth";
@@ -12,6 +13,12 @@ import {
   User,
 } from "./types/user";
 const app = express();
+app.use(
+  cors({
+    origin: "*",
+  })
+);
+app.use(express.json());
 app.use(
   session({
     secret: "keyboard cat",

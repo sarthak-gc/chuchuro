@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  userId    String  @id @default(uuid())
+  firstName String?
+  lastName  String?
+  email     String?
+  contact   String?
+  location  String?
+
+  personalWebsite   String?
+  githubProfile     String  @unique
+  githubId          String? @unique
+  githubAccessToken String? @unique
+
+  socials    Social[]
+  latestRepo String?
+
+  education   Education[]
+  skills      Skill[]
+  experiences Experience[]
+  projects    Project[]
+  resume      Resume[]
+}
+
+model Social {
+  id     String @id @default(uuid())
+  userId String
+
+  websiteName String
+  url         String
+  User        User   @relation(fields: [userId], references: [userId])
+}
+
+model Education {
+  id              String    @id @default(uuid())
+  userId          String
+  college         String
+  field           String
+  startDate       DateTime
+  endDate         DateTime?
+  completed       Boolean?
+  expectedEndDate DateTime?
+  GPA             String?
+  CGPA            String?
+
+  description String?
+
+  user User @relation(fields: [userId], references: [userId])
+}
+
+model Skill {
+  id     String   @id @default(uuid())
+  userId String
+  title  String
+  skills String[]
+
+  // projectId Project[]
+  user User @relation(fields: [userId], references: [userId])
+}
+
+model Experience {
+  id          String    @id @default(uuid())
+  userId      String
+  company     String
+  role        String
+  startDate   DateTime
+  endDate     DateTime?
+  description String?
+
+  user User @relation(fields: [userId], references: [userId])
+}
+
+model Project {
+  id          String        @id @default(uuid())
+  userId      String
+  title       String
+  description String
+  links       ProjectLink[]
+  startDate   DateTime
+  endDate     DateTime?
+  // skills      Skill[]
+
+  user User @relation(fields: [userId], references: [userId])
+}
+
+model ProjectLink {
+  id        String   @id @default(uuid())
+  type      LinkType
+  projectId String
+  Project   Project  @relation(fields: [projectId], references: [id])
+}
+
+enum LinkType {
+  SOURCE_CODE
+  DEMO
+  WEBSITE
+  TESTIMONIAL
+}
+
+model Resume {
+  id          String   @id @default(uuid())
+  userId      String
+  generatedAt DateTime @default(now())
+  data        String
+
+  user User @relation(fields: [userId], references: [userId])
+}
+
+enum Degree {
+  BACHELORS
+  MASTERS
+  BACHELORS_RUNNING
+  MASTERS_RUNNING
+}
+
+model Job {
+  id          String    @id @default(uuid())
+  title       String
+  description String
+  location    String?
+  salary      Float?
+  hr          HR        @relation(fields: [hrId], references: [id])
+  hrId        String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  matched     Matched[]
+}
+
+model HR {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  jobs      Job[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Matched {
+  id        String   @id @default(uuid())
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id])
+  userIds   KvPair[]
+  matchedAt DateTime @default(now())
+}
+
+model KvPair {
+  id                String  @id @default(uuid())
+  userId            String
+  matchedPercentage Float
+  Matched           Matched @relation(fields: [matchedId], references: [id])
+  matchedId         String
+}
+
+// model Matched {
+//   id        String   @id @default(uuid())
+//   jobId     String
+//   job       Job      @relation(fields: [jobId], references: [id])
+//   userIds   String[]
+//   matchedAt DateTime @default(now())
+// }
