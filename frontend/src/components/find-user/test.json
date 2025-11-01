@@ -1,0 +1,84 @@
+{
+  "response": {
+    "skills": {
+      "Frontend": [
+        "React.js",
+        "Tailwind CSS",
+        "Styled Components",
+        "Emotion",
+        "Framer Motion",
+        "Zustand",
+        "TanStack Query",
+        "Material-UI (MUI)",
+        "Radix UI",
+        "Shadcn UI",
+        "CKEditor",
+        "WebSockets"
+      ],
+      "Backend": [
+        "Node.js",
+        "Go",
+        "Express.js",
+        "Hono",
+        "Gorilla Mux",
+        "Prisma ORM",
+        "GORM",
+        "Redis",
+        "PostgreSQL",
+        "JWT (JSON Web Tokens)",
+        "WebSockets",
+        "Cloudflare Workers",
+        "Puppeteer",
+        "Zod",
+        "Bcrypt",
+        "Cron Jobs"
+      ],
+      "Tools": [
+        "TypeScript",
+        "Vite",
+        "ESLint",
+        "Google Gemini API",
+        "GitHub API",
+        "Cloudinary",
+        "Axios"
+      ]
+    },
+    "details": {
+      "personal_info": {
+        "name": "Sarthak GC",
+        "contact": null,
+        "email": "sarthakgc.np@gmail.com",
+        "location": "Kathmandu, Nepal",
+        "socials": {
+          "Website": "https://www.sarthakgc.com.np/",
+          "GitHub": "https://github.com/sarthak-gc",
+          "LinkedIn": "https://www.linkedin.com/in/sarthak-gc/",
+          "X": "https://x.com/sarthakgc",
+          "LeetCode": "https://leetcode.com/u/sarthakgc"
+        }
+      },
+      "education": [
+        {
+          "institute": "Patan Multiple Campus, Patandhoka-Lalitpur",
+          "subject": "Bachelor of Computer Application",
+          "duration": "2023-Present",
+          "field": "BCA"
+        },
+        {
+          "institute": "Everest English Boarding Higher Secondary School, Butwal-Rupandehi",
+          "subject": "High School",
+          "duration": "2020-2022",
+          "field": null
+        }
+      ],
+      "projects": [
+        {
+          "name": "Real time chat app",
+          "description": "A simple chat app built to explore Socket.io, allowing users to message anyone and create custom groups with any participants they choose. While the app is designed to offer easy communication and group creation, it currently doesn't have strict privacy or optimization features (such as restricting who can add others to groups).",
+          "live": "https://www.sarthakgc.com.np/project/chat-app",
+          "code": null
+        }
+      ]
+    }
+  }
+}

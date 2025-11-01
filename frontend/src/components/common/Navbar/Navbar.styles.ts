@@ -170,7 +170,7 @@ export const MobileMenuButton = styled.button`
   }
 `;
 
-export const MobileMenu = styled.div<{ isOpen: boolean }>`
+export const MobileMenu = styled.div<{ $isOpen: boolean }>`
   position: fixed;
   top: 64px;
   right: 0;
@@ -179,7 +179,7 @@ export const MobileMenu = styled.div<{ isOpen: boolean }>`
   background: ${theme.colors.surface};
   border-left: 1px solid ${theme.colors.border};
   box-shadow: ${theme.shadows.lg};
-  transform: translateX(${(props) => (props.isOpen ? "0" : "100%")});
+  transform: translateX(${(props) => (props.$isOpen ? "0" : "100%")});
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1000;
   display: flex;

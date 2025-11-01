@@ -41,12 +41,18 @@ import {
   StepIndicator,
   FormContainer,
 } from "./Signup.styles";
+import { useNavigate } from "react-router-dom";
 
 interface SignupProps {
   type: "user" | "hr";
 }
 
 const Signup: React.FC<SignupProps> = ({ type }) => {
+  const navigate = useNavigate();
+  const data = JSON.parse(localStorage.getItem("user"));
+  if (!!data?.access_token || !!data?.id) {
+    navigate("/jobs");
+  }
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",

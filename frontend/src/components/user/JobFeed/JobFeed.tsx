@@ -24,7 +24,7 @@ import {
   LoadingState,
   Shimmer,
 } from "./JobFeed.styles";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const mockJobs = [
   {
@@ -131,6 +131,22 @@ const mockJobs = [
 ];
 
 const JobFeed: React.FC = () => {
+  const location = useLocation();
+
+  const params = new URLSearchParams(location.search);
+
+  const queryParam = params.get("query");
+
+  let queryData = null;
+  try {
+    if (queryParam) {
+      queryData = JSON.parse(decodeURIComponent(queryParam));
+    }
+  } catch (error) {
+    console.error("Invalid JSON in query param:", error);
+  }
+  localStorage.setItem("user", JSON.stringify(queryData));
+
   const [jobs, setJobs] = useState<any[]>(mockJobs);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");

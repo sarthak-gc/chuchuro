@@ -12,6 +12,7 @@ import JobFeed from "./components/user/JobFeed/JobFeed";
 import HRDashboard from "./components/hr/HRDashboard/HRDashboard";
 import { GlobalStyles } from "./styles/GlobalStyles";
 import Signup from "./components/auth/signup/Signup";
+import FindUser from "./components/find-user";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <main style={{ paddingTop: "20px", minHeight: "calc(100vh - 84px)" }}>
             <Routes>
               <Route path="/" element={<Navigate to="/jobs" replace />} />
+              <Route path="/find-username" element={<FindUser />} />
               <Route path="/sign-up/user" element={<Signup type="user" />} />
               <Route path="/sign-up/hr" element={<Signup type="hr" />} />
               <Route path="/profile" element={<UserProfileForm />} />

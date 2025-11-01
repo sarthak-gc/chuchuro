@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import { 
-  Briefcase, 
-  Home, 
-  FileText, 
-  User, 
-  Settings, 
+import React, { useState } from "react";
+import {
+  Briefcase,
+  Home,
+  FileText,
+  User,
+  Settings,
   LogOut,
   ChevronDown,
   Menu,
-  X
-} from 'lucide-react';
+  X,
+} from "lucide-react";
 import {
   NavbarContainer,
   NavbarContent,
@@ -23,8 +23,9 @@ import {
   MobileMenuButton,
   MobileMenu,
   MobileNavLink,
-  Overlay
-} from './Navbar.styles';
+  Overlay,
+} from "./Navbar.styles";
+import { useNavigate } from "react-router-dom";
 
 const Navbar: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -41,7 +42,7 @@ const Navbar: React.FC = () => {
   const handleNavLinkClick = () => {
     closeMobileMenu();
   };
-
+  const navigate = useNavigate();
   return (
     <>
       <NavbarContainer>
@@ -77,7 +78,7 @@ const Navbar: React.FC = () => {
               <User size={20} />
               <ChevronDown size={16} />
             </Avatar>
-            
+
             {isDropdownOpen && (
               <DropdownMenu>
                 <DropdownItem>
@@ -103,7 +104,7 @@ const Navbar: React.FC = () => {
       {isMobileMenuOpen && <Overlay onClick={closeMobileMenu} />}
 
       {/* Mobile Menu */}
-      <MobileMenu isOpen={isMobileMenuOpen}>
+      <MobileMenu $isOpen={isMobileMenuOpen}>
         <MobileNavLink href="/jobs" onClick={handleNavLinkClick}>
           <Home size={20} />
           <span>Home</span>
@@ -120,14 +121,21 @@ const Navbar: React.FC = () => {
           <User size={20} />
           <span>Profile</span>
         </MobileNavLink>
-        
+
         {/* Mobile Profile Options */}
         <div className="mobile-profile-section">
           <MobileNavLink href="/settings" onClick={handleNavLinkClick}>
             <Settings size={20} />
             <span>Settings</span>
           </MobileNavLink>
-          <MobileNavLink href="/logout" onClick={handleNavLinkClick}>
+          <MobileNavLink
+            onClick={(e) => {
+              e.preventDefault();
+              console.log("hello");
+              localStorage.removeItem("user");
+              navigate("/sign-up/user");
+            }}
+          >
             <LogOut size={20} />
             <span>Logout</span>
           </MobileNavLink>
