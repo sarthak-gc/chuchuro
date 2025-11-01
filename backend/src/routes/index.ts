@@ -91,13 +91,11 @@ const userAuthMiddleware = (
 
 router.post("/jobs/apply/:jobId/user/:userId", applyForJob);
 router.get("/jobs/applicants/:jobId", hrAuthMiddleware, getApplicantsForJob);
-router.get("jobs/all/:hrId", hrAuthMiddleware, getAllHrJobApplicants);
+router.get("/jobs/all/:hrId", hrAuthMiddleware, getAllHrJobApplicants);
 router.get("/jobs/appplied/:userId", hrAuthMiddleware, getAppliedJobs);
 
-router.post("/job", createJob);
-router.get("/job", getJobs);
+router.post("/job", hrAuthMiddleware, createJob);
+router.get("/jobs", hrAuthMiddleware, getJobs);
 
 router.post("/hr/signup", registerHandler);
 router.post("/hr/login", loginHandler);
-
-router.get("")
