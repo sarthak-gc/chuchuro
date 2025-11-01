@@ -81,12 +81,184 @@ export const matchUserToExistingJobs = async (req: Request, res: Response) => {
   res.json({ response });
 };
 
+export const applyForJob = async (req: Request, res: Response) => {
+  const jobId = req.params.jobId;
+  const userId = req.params.userId;
+  const job = await prisma.job.findFirst({
+    where: {
+      id: jobId,
+    },
+  });
+  const matchedPercentage = await prisma.matched.findFirst({
+    where: {
+      userIds: {
+        some: {
+          userId: userId,
+        },
+      },
+    },
+    select: {
+      userIds: {
+        where: {
+          userId: userId,
+        },
+        select: {
+          matchedPercentage: true,
+        },
+      },
+    },
+  });
+
+  if (!matchedPercentage) {
+    return res.status(404).json({
+      msg: "No match found for this user",
+    });
+  }
+
+  const percentage = matchedPercentage.userIds[0]?.matchedPercentage;
+  if (percentage < 40) {
+    res.json({
+      msg: "you would be good applying for other roles",
+    });
+    return;
+  }
+
+  if (job) {
+    await prisma.application.create({
+      data: {
+        matchedPercentage: percentage,
+        jobId,
+        userId: userId as string,
+      },
+    });
+  }
+  res.json({
+    msg: "application sent",
+  });
+};
+export const getAppliedJobs = async (req: Request, res: Response) => {
+  const userId = req.params.userId;
+  const applications = await prisma.application.findMany({
+    where: {
+      userId: userId as string,
+    },
+    include: {
+      job: true,
+    },
+  });
+
+  if (applications.length === 0) {
+    return res.status(404).json({
+      msg: "No applied jobs found",
+    });
+  }
+
+  // Extract job details from applications
+  const appliedJobs = applications.map((application) => application.job);
+
+  res.json({
+    appliedJobs,
+  });
+};
+
+export const getApplicantsForJob = async (req: Request, res: Response) => {
+  const { jobId } = req.params;
+  const hrId = req.hr?.id;
+  if (!hrId) {
+    res.json({
+      msg: "Unauthorized",
+    });
+    return;
+  }
+
+  console.log(jobId, "JOB ID");
+  console.log(hrId, "HR ID");
+  const job = await prisma.job.findFirst({
+    where: {
+      id: jobId,
+      hrId: hrId as string,
+    },
+  });
+
+  if (!job) {
+    return res.status(403).json({
+      msg: "You do not have access to this job or the job does not exist.",
+    });
+  }
+
+  const applications = await prisma.application.findMany({
+    where: {
+      jobId: jobId,
+    },
+    include: {
+      user: true,
+    },
+  });
+  console.log(applications);
+
+  if (applications.length === 0) {
+    return res.status(404).json({
+      msg: "No applicants for this job.",
+    });
+  }
+
+  const applicants = applications.map((application) => ({
+    userId: application.user.userId,
+    firstName: application.user.firstName,
+    lastName: application.user.lastName,
+    email: application.user.email,
+    status: application.status,
+  }));
+
+  res.json({
+    applicants,
+  });
+};
+
+export const getAllHrJobApplicants = async (req: Request, res: Response) => {
+  const hrId = req.params.hrId;
+  if (!hrId) {
+    res.json({
+      msg: "Unauthorized",
+    });
+    return;
+  }
+
+  const jobIds = await prisma.job.findMany({
+    where: {
+      hrId: hrId as string,
+    },
+    select: {
+      id: true,
+    },
+  });
+  if (jobIds.length === 0) {
+    return res.status(403).json({
+      msg: "You do not have access to any jobs.",
+    });
+  }
+
+  const jobIdList = jobIds.map((job) => job.id);
+
+  const applications = await prisma.application.findMany({
+    where: {
+      jobId: {
+        in: jobIdList,
+      },
+    },
+    include: {
+      user: true,
+    },
+  });
+
+  res.json({
+    applications,
+  });
+};
 export const createJob = async (req: Request, res: Response) => {
   try {
     const { title, description, salary } = req.body || {};
-
-    // const hrId = req.user?.id || "3274f262-4e0a-461a-8f67-07135baec561";
-    const hrId = req.user?.id || "842bc88d-1dfd-48fc-a99b-d79ed848e2a3";
+    const hrId = req.hr?.id;
 
     if (!hrId) {
       return res.status(401).json({ msg: "Unauthorized: User not logged in" });
@@ -155,6 +327,39 @@ export const createJob = async (req: Request, res: Response) => {
     res.status(500).json({ msg: "Server error", error });
   }
 };
+export const getJobs = async (req: Request, res: Response) => {
+  try {
+    const hrId = req.hr?.id;
+
+    if (!hrId) {
+      return res.status(401).json({ msg: "Unauthorized: User not logged in" });
+    }
+
+    const hr = await prisma.hR.findUnique({
+      where: { id: hrId },
+    });
+
+    if (!hr) {
+      return res
+        .status(403)
+        .json({ msg: "Unauthorized: Only HR can post jobs" });
+    }
+
+    const jobs = await prisma.job.findMany({
+      where: {
+        hrId,
+      },
+    });
+
+    res.json({
+      msg: "Jobs fetched",
+      jobs,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ msg: "Server error", error });
+  }
+};
 export async function registerHandler(req: Request, res: Response) {
   try {
     const { email, password } = req.body || {};
@@ -203,7 +408,6 @@ export async function loginHandler(req: Request, res: Response) {
       return;
     }
 
-    // Find the HR user by email
     const existingHR = await prisma.hR.findUnique({
       where: { email },
     });
@@ -212,25 +416,22 @@ export async function loginHandler(req: Request, res: Response) {
       return res.status(400).json({ error: "Invalid email or password" });
     }
 
-    // Compare the provided password with the stored hashed password
     const isPasswordValid = await bcrypt.compare(password, existingHR.password);
 
     if (!isPasswordValid) {
       return res.status(400).json({ error: "Invalid email or password" });
     }
 
-    // Generate a JWT token (optional, for session management)
     const token = jwt.sign(
       { userId: existingHR.id, email: existingHR.email },
-      "your-secret-key", // Use a secure secret key
+      "your-secret-key",
       { expiresIn: "1h" }
     );
 
-    // Return the token and HR info (excluding password)
     return res.status(200).json({
       userId: existingHR.id,
       email: existingHR.email,
-      token, // JWT token for session management
+      token,
     });
   } catch (error) {
     console.error(error);
@@ -259,13 +460,10 @@ const analyzeGuestProfiles = async (req: Request, res: Response) => {
     if (personal_information.website) {
       function sanitizeUrl(url: string) {
         let sanitizedWebsite = url.replace(/^https?:\/\//, "");
-
         sanitizedWebsite = sanitizedWebsite.replace(/^www\./, "");
-
         if (!/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(sanitizedWebsite)) {
           return null;
         }
-
         return sanitizedWebsite;
       }
       const url = sanitizeUrl(personal_information.website);
@@ -280,13 +478,11 @@ const analyzeGuestProfiles = async (req: Request, res: Response) => {
       });
       return;
     }
-
     const packages = await getPackages(req, repos);
     const response = await callAi(
       { ...moreInfo, ...personal_information },
       packages
     );
-
     const { skills } = response;
     const { projects, education, personal_info } = response.details;
     const {
@@ -298,7 +494,6 @@ const analyzeGuestProfiles = async (req: Request, res: Response) => {
       socials,
       personalWebsite,
     } = personal_info;
-
     if (!url) {
       res.json({
         msg: "User not found",
@@ -323,16 +518,15 @@ const analyzeGuestProfiles = async (req: Request, res: Response) => {
         resume: true,
       },
     });
-
     let user: User;
     if (existingUser) {
       res.json({
-        user: existingUser,
+        response,
+        id: existingUser.userId,
       });
       return;
     } else {
       console.log(socials, "HERE!@#");
-      // Create the user if it doesn't exist
       user = await prisma.user.create({
         data: {
           firstName: firstName || "",
@@ -350,37 +544,25 @@ const analyzeGuestProfiles = async (req: Request, res: Response) => {
           // },
           education: {
             create: education?.map((edu: any) => {
-              const [startYear, endYear] = edu.duration.split("-");
-
-              const startDate = new Date(`${startYear}-01-01`);
-              let endDate = null;
-
-              if (endYear !== "Present") {
-                endDate = new Date(`${endYear}-01-01`);
-              }
-
               return {
-                college: edu.institute || "", // Default to empty string if null
-                field: edu.field || "Not specified", // Default to "Not specified"
-                startDate,
-                endDate,
+                college: edu.institute || "",
+                field: edu.field || "Not specified",
                 description: edu.subject || "", // Default to empty string if null
               };
             }),
           },
         },
       });
-
       await prisma.skill.createMany({
         data: Object.entries(skills).map(([title, skillArray]) => ({
-          title: title || "", // Ensure title is not null
-          skills: (skillArray as string[]) || [], // Ensure skills array is not null
+          title: title || "",
+          skills: (skillArray as string[]) || [],
           userId: user.userId,
         })),
       });
       res.json({
         response,
-        user,
+        id: user.userId,
       });
     }
   } catch (e: any) {

@@ -88,7 +88,8 @@ If any information is missing or cannot be determined, return null for that fiel
       return { ...jsonData };
     }
     return { skills: [], personal_info: null };
-  } catch {
+  } catch (e) {
+    console.log(e);
     throw new Error("Error during AI API call");
   }
 };

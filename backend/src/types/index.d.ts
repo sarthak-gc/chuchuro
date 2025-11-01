@@ -1,4 +1,5 @@
 import "express-session";
+import { HR, User } from "../../generated/prisma";
 
 declare module "express-session" {
   interface Session {
@@ -11,7 +12,8 @@ declare module "express-session" {
 declare global {
   namespace Express {
     interface Request {
-      user?: User;
+      user?: User | {};
+      hr?: HR | {};
       id?: string;
     }
   }

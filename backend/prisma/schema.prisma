@@ -24,11 +24,12 @@ model User {
   socials    Social[]
   latestRepo String?
 
-  education   Education[]
-  skills      Skill[]
-  experiences Experience[]
-  projects    Project[]
-  resume      Resume[]
+  applications Application[]
+  education    Education[]
+  skills       Skill[]
+  experiences  Experience[]
+  projects     Project[]
+  resume       Resume[]
 }
 
 model Social {
@@ -45,7 +46,7 @@ model Education {
   userId          String
   college         String
   field           String
-  startDate       DateTime
+  startDate       DateTime?
   endDate         DateTime?
   completed       Boolean?
   expectedEndDate DateTime?
@@ -55,6 +56,23 @@ model Education {
   description String?
 
   user User @relation(fields: [userId], references: [userId])
+}
+
+model Application {
+  id                String            @id @default(uuid()) // Unique ID, generated as a UUID
+  jobId             String
+  userId            String
+  status            ApplicationStatus @default(pending)
+  matchedPercentage Float
+
+  job  Job  @relation(fields: [jobId], references: [id])
+  user User @relation(fields: [userId], references: [userId])
+}
+
+enum ApplicationStatus {
+  pending
+  approved
+  rejected
 }
 
 model Skill {
@@ -123,16 +141,17 @@ enum Degree {
 }
 
 model Job {
-  id          String    @id @default(uuid())
-  title       String
-  description String
-  location    String?
-  salary      Float?
-  hr          HR        @relation(fields: [hrId], references: [id])
-  hrId        String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  matched     Matched[]
+  id           String        @id @default(uuid())
+  title        String
+  description  String
+  location     String?
+  salary       Float?
+  hr           HR            @relation(fields: [hrId], references: [id])
+  hrId         String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  matched      Matched[]
+  applications Application[]
 }
 
 model HR {

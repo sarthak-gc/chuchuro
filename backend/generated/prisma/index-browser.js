@@ -155,6 +155,14 @@ exports.Prisma.EducationScalarFieldEnum = {
   description: 'description'
 };
 
+exports.Prisma.ApplicationScalarFieldEnum = {
+  id: 'id',
+  jobId: 'jobId',
+  userId: 'userId',
+  status: 'status',
+  matchedPercentage: 'matchedPercentage'
+};
+
 exports.Prisma.SkillScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -240,6 +248,12 @@ exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
 };
+exports.ApplicationStatus = exports.$Enums.ApplicationStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected'
+};
+
 exports.LinkType = exports.$Enums.LinkType = {
   SOURCE_CODE: 'SOURCE_CODE',
   DEMO: 'DEMO',
@@ -251,6 +265,7 @@ exports.Prisma.ModelName = {
   User: 'User',
   Social: 'Social',
   Education: 'Education',
+  Application: 'Application',
   Skill: 'Skill',
   Experience: 'Experience',
   Project: 'Project',
