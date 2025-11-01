@@ -511,7 +511,6 @@ const FindUser = () => {
       const data = await response.json();
       console.log("API Response:", data);
 
-      // Transform API data to match our resume structure
       transformApiData(data.response);
     } catch (error) {
       console.error("Error fetching user data:", error);
